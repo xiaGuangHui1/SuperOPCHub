@@ -1,18 +1,31 @@
 import { motion } from "framer-motion";
 import { FaBriefcase, FaMoneyBillWave, FaClock, FaTools } from "react-icons/fa";
 
-interface DemandProfileProps {
-  isVisible: boolean;
+export interface DemandProfileData {
+  project_type: string;
+  budget_min: number | null;
+  budget_max: number | null;
+  timeline: string;
+  skills_required: string[];
+  description: string;
 }
 
-export function DemandProfile({ isVisible }: DemandProfileProps) {
+interface DemandProfileProps {
+  isVisible: boolean;
+  data?: DemandProfileData;
+}
+
+export function DemandProfile({ isVisible, data }: DemandProfileProps) {
   if (!isVisible) return null;
 
-  const profileData = {
-    projectType: "企业官网设计",
-    budget: "¥10,000 - ¥30,000",
-    timeline: "2-4 周",
-    skills: ["UI 设计", "前端开发", "响应式布局"],
+  const formatBudget = () => {
+    if (!data) return "待定";
+    if (data.budget_min && data.budget_max) {
+      return `¥${data.budget_min.toLocaleString()} - ¥${data.budget_max.toLocaleString()}`;
+    }
+    if (data.budget_min) return `¥${data.budget_min.toLocaleString()} 起`;
+    if (data.budget_max) return `不超过 ¥${data.budget_max.toLocaleString()}`;
+    return "待定";
   };
 
   return (
@@ -35,7 +48,7 @@ export function DemandProfile({ isVisible }: DemandProfileProps) {
             </div>
             <div>
               <p className="text-xs sm:text-sm text-gray-500 mb-1">项目类型</p>
-              <p className="font-medium text-sm sm:text-base text-gray-900">{profileData.projectType}</p>
+              <p className="font-medium text-sm sm:text-base text-gray-900">{data?.project_type || "待定"}</p>
             </div>
           </div>
 
@@ -45,7 +58,7 @@ export function DemandProfile({ isVisible }: DemandProfileProps) {
             </div>
             <div>
               <p className="text-xs sm:text-sm text-gray-500 mb-1">预算范围</p>
-              <p className="font-medium text-sm sm:text-base text-gray-900">{profileData.budget}</p>
+              <p className="font-medium text-sm sm:text-base text-gray-900">{formatBudget()}</p>
             </div>
           </div>
 
@@ -55,7 +68,7 @@ export function DemandProfile({ isVisible }: DemandProfileProps) {
             </div>
             <div>
               <p className="text-xs sm:text-sm text-gray-500 mb-1">时间要求</p>
-              <p className="font-medium text-sm sm:text-base text-gray-900">{profileData.timeline}</p>
+              <p className="font-medium text-sm sm:text-base text-gray-900">{data?.timeline || "待定"}</p>
             </div>
           </div>
 
@@ -65,16 +78,20 @@ export function DemandProfile({ isVisible }: DemandProfileProps) {
             </div>
             <div>
               <p className="text-xs sm:text-sm text-gray-500 mb-1">技能需求</p>
-              <div className="flex flex-wrap gap-1 sm:gap-2 mt-1">
-                {profileData.skills.map((skill) => (
-                  <span
-                    key={skill}
-                    className="px-2 sm:px-3 py-0.5 sm:py-1 bg-purple-100 text-purple-700 text-xs rounded-full"
-                  >
-                    {skill}
-                  </span>
-                ))}
-              </div>
+              {data?.skills_required?.length ? (
+                <div className="flex flex-wrap gap-1 sm:gap-2 mt-1">
+                  {data.skills_required.map((skill) => (
+                    <span
+                      key={skill}
+                      className="px-2 sm:px-3 py-0.5 sm:py-1 bg-purple-100 text-purple-700 text-xs rounded-full"
+                    >
+                      {skill}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <p className="font-medium text-sm sm:text-base text-gray-400">待定</p>
+              )}
             </div>
           </div>
         </div>

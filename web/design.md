@@ -590,3 +590,205 @@ VITE_SUPABASE_ANON_KEY=     # Supabase 匿名密钥
 7. **即时通讯** — 匹配后的沟通渠道
 8. **支付/计费** — 项目预算和支付流程
 9. **暗色模式** — CSS 变量已定义，需切换逻辑
+
+---
+
+## 16. 后端 AI 匹配系统
+
+### 16.1 架构概览
+
+```
+┌────────────────────────────────────────────────────┐
+│                  Frontend (React)                   │
+│  ChatInterface ─── fetch ───► /api/chat            │
+│  DemandProfile ◄── updates ── /api/chat            │
+│  OPCMatchCard  ◄── matches ── /api/chat            │
+└───────────────────────┬────────────────────────────┘
+                        │ HTTP
+┌───────────────────────▼────────────────────────────┐
+│              Backend (FastAPI + Python)             │
+│                                                    │
+│  POST /api/chat                                    │
+│    │                                               │
+│    ├─► 1. LLM 需求提取 (services/extraction.py)    │
+│    │      └─ Prompt: 从对话提取结构化需求          │
+│    │                                               │
+│    ├─► 2. 对话引导生成 (services/extraction.py)    │
+│    │      └─ 需求不完整 → 追问                      │
+│    │      └─ 需求完整   → 触发匹配                  │
+│    │                                               │
+│    ├─► 3. OPC 匹配引擎 (services/matching.py)      │
+│    │      ├─ 维度1: 技能语义匹配  (40%)            │
+│    │      │    └─ Embedding 余弦相似度             │
+│    │      ├─ 维度2: 角色适配度    (30%)            │
+│    │      │    └─ LLM 评估角色匹配                  │
+│    │      ├─ 维度3: 描述相关性    (20%)            │
+│    │      │    └─ Embedding 余弦相似度             │
+│    │      └─ 维度4: 可接单状态    (10%)            │
+│    │                                               │
+│    └─► 4. 数据持久化 (db/supabase.py)              │
+│           ├─ conversation_history (对话记录)        │
+│           └─ demand_profiles     (需求画像)          │
+│                                                    │
+└───────────────────────┬────────────────────────────┘
+                        │
+┌───────────────────────▼────────────────────────────┐
+│              External Services                      │
+│  ┌──────────────┐  ┌──────────────┐                │
+│  │  LLM API     │  │  Supabase     │                │
+│  │  (OpenAI/    │  │  (Auth + DB)  │                │
+│  │   兼容接口)   │  │               │                │
+│  └──────────────┘  └──────────────┘                │
+└────────────────────────────────────────────────────┘
+```
+
+### 16.2 目录结构
+
+```
+api/
+├── main.py                     # FastAPI 入口，路由定义
+├── config.py                   # 环境变量配置
+├── requirements.txt            # Python 依赖
+├── .env.example                # 环境变量模板
+├── services/
+│   ├── llm.py                  # LLM 客户端（OpenAI 兼容）
+│   ├── embedding.py            # 嵌入向量计算 + 缓存
+│   ├── extraction.py           # 需求提取 + 对话生成
+│   ├── matching.py             # 多维匹配引擎
+│   └── prompting.py            # Prompt 模板管理
+├── models/
+│   └── schemas.py              # Pydantic 数据模型
+└── db/
+    └── supabase.py             # Supabase 客户端封装
+```
+
+### 16.3 API 接口
+
+#### POST /api/chat — 核心对话接口
+
+**请求**：
+```json
+{
+  "session_id": "session_xxx",
+  "messages": [
+    {"role": "user", "content": "帮我找一个UI设计师"},
+    {"role": "assistant", "content": "好的，请问项目预算是多少？"},
+    {"role": "user", "content": "预算1-3万"}
+  ],
+  "user_id": "optional-uuid"
+}
+```
+
+**响应（需求不完整时）**：
+```json
+{
+  "session_id": "session_xxx",
+  "assistant_message": "请问您需要设计的具体是什么类型的项目？比如企业官网、电商App还是小程序？",
+  "demand_profile": {
+    "project_type": "UI设计",
+    "budget_min": 10000,
+    "budget_max": 30000,
+    "skills_required": ["UI设计"],
+    "is_complete": false,
+    "missing_fields": ["timeline", "skills_required"]
+  },
+  "matches": [],
+  "is_matching_complete": false
+}
+```
+
+**响应（需求完整时）**：
+```json
+{
+  "session_id": "session_xxx",
+  "assistant_message": "需求已经很清晰了！让我为您匹配最适合的专业人士...",
+  "demand_profile": {
+    "project_type": "企业官网设计",
+    "budget_min": 10000,
+    "budget_max": 30000,
+    "timeline": "2-4周",
+    "skills_required": ["UI设计", "前端开发", "响应式布局"],
+    "is_complete": true,
+    "missing_fields": []
+  },
+  "matches": [
+    {
+      "id": "uuid",
+      "name": "张设计师",
+      "avatar_url": "https://...",
+      "role": "资深 UI 设计师",
+      "description": "5年企业官网设计经验...",
+      "skills": ["UI设计", "Figma", "品牌设计"],
+      "match_rate": 95.0,
+      "match_reasons": [
+        "技能高度匹配：UI设计、Figma",
+        "角色高度匹配：资深 UI 设计师 与项目需求契合",
+        "综合匹配度优秀，推荐优先联系"
+      ],
+      "is_available": true
+    }
+  ],
+  "is_matching_complete": true
+}
+```
+
+### 16.4 匹配算法详解
+
+```
+总匹配度 = 技能语义 × 0.40 + 角色适配 × 0.30 + 描述相关 × 0.20 + 可接单 × 0.10
+```
+
+| 维度 | 权重 | 实现方式 | 说明 |
+|------|------|----------|------|
+| 技能语义匹配 | 40% | Embedding 余弦相似度 | 需求技能 vs OPC 技能 |
+| 角色适配度 | 30% | LLM 评分 (0-100) | LLM 判断角色是否匹配项目类型 |
+| 描述相关性 | 20% | Embedding 余弦相似度 | 需求描述 vs OPC 介绍 |
+| 可接单状态 | 10% | 规则判定 | online=100, offline=30 |
+
+**排序 + 过滤**：
+- 按加权总分降序排列
+- 过滤低于 `MATCH_MIN_SCORE`（默认 40）的结果
+- 返回 Top-K（默认 8）个匹配
+
+### 16.5 LLM 集成
+
+支持任何 OpenAI API 兼容接口，通过环境变量配置：
+
+| 变量 | 说明 | 默认值 |
+|------|------|--------|
+| `LLM_API_KEY` | API 密钥 | — |
+| `LLM_BASE_URL` | API 地址 | `https://api.openai.com/v1` |
+| `LLM_MODEL` | 对话模型 | `gpt-4o` |
+| `EMBEDDING_MODEL` | 嵌入模型 | `text-embedding-3-small` |
+
+兼容的 LLM 提供商：
+- **OpenAI** — GPT-4o, GPT-4, GPT-3.5
+- **DeepSeek** — `LLM_BASE_URL=https://api.deepseek.com/v1`
+- **通义千问** — `LLM_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1`
+- **本地 Ollama** — `LLM_BASE_URL=http://localhost:11434/v1`
+- **Azure OpenAI** — 需适配（配置 base_url 和 api_version）
+
+### 16.6 启动方式
+
+```bash
+cd api
+
+# 1. 复制环境变量配置
+cp .env.example .env
+# 编辑 .env，填入 LLM_API_KEY 和 SUPABASE_SERVICE_KEY
+
+# 2. 安装依赖
+pip install -r requirements.txt
+
+# 3. 启动服务
+uvicorn main:app --reload --port 8000
+```
+
+### 16.7 前端集成
+
+前端 `src/lib/api.ts` 封装了 API 调用，`ChatInterface` 组件通过以下回调与后端交互：
+
+- `onDemandUpdate(demand)` — 每次 API 返回需求更新时触发
+- `onMatchResults(matches)` — 匹配完成时触发，传入排序后的结果
+
+环境变量 `VITE_API_URL=http://localhost:8000` 配置后端地址。
