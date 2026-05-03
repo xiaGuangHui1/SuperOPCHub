@@ -122,10 +122,8 @@ export default function Discovery() {
     const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
     const radiusBase = node.level === 0 ? 0 : node.level === 1 ? 140 : 220;
     const radius = isMobile ? radiusBase * 0.65 : radiusBase;
-    const offsetX = isMobile ? -radius * 0.15 : radius * 0.8;                                        
-    const offsetY = isMobile ? -radius * 0.08 : radius * 0.8;                                        
-    const x = parentX + Math.cos(angle) * radius - offsetX;
-    const y = parentY + Math.sin(angle) * radius - offsetY;  
+    const x = parentX + Math.cos(angle) * radius;                                                    
+    const y = parentY + Math.sin(angle) * radius;   
 
     const sizeClass = node.level === 0 ? "w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 lg:w-28 lg:h-28 text-[10px] sm:text-[11px] md:text-xs" : node.level === 1 ? "w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 text-[9px] sm:text-[10px] md:text-xs" : "w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 lg:w-20 lg:h-20 text-[8px] sm:text-[9px] md:text-[10px]";
 
@@ -134,7 +132,7 @@ export default function Discovery() {
         key={node.id}
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        style={{ left: `calc(50% + ${x}px)`, top: `calc(50% + ${y}px)` }}
+        style={{ left: `calc(50% + ${x}px - 5%)`, top: `calc(50% + ${y}px - 10%)` }}
         transition={{ duration: 0.5, delay: index * 0.08 }}
         className={`absolute flex flex-col items-center cursor-pointer transform -translate-x-1/2 -translate-y-1/2 ${
           node.level === 0 ? "z-30" : node.level === 1 ? "z-20" : "z-10"
@@ -194,23 +192,21 @@ export default function Discovery() {
 
         <main className="max-w-6xl mx-auto px-4 sm:px-6 pb-8">
           <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 rounded-2xl shadow-xl border border-gray-100 p-4 sm:p-6 h-[500px] sm:h-[600px] lg:h-[650px] relative overflow-hidden">
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="relative w-full h-full">
-                {zoomLevel === 0 && renderNodes([initialData])}
-                {zoomLevel > 0 && selectedNode && (
-                  <>
-                    {renderNode(
-                      { ...selectedNode, level: 0, x: 0, y: 0 },
-                      0,
-                      1
+            <div className="relative w-full h-full">
+              {zoomLevel === 0 && renderNodes([initialData])}
+              {zoomLevel > 0 && selectedNode && (
+                <>
+                  {renderNode(
+                    { ...selectedNode, level: 0, x: 0, y: 0 },
+                    0,
+                    1
+                  )}
+                  {selectedNode.children &&
+                    selectedNode.children.map((child, index) =>
+                      renderNode(child, index, selectedNode.children!.length, 0, 0)
                     )}
-                    {selectedNode.children &&
-                      selectedNode.children.map((child, index) =>
-                        renderNode(child, index, selectedNode.children!.length, 0, 0)
-                      )}
-                  </>
-                )}
-              </div>
+                </>
+              )}
             </div>
 
             {selectedNode && selectedNode.children && (
