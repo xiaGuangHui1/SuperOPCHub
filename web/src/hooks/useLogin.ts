@@ -16,6 +16,8 @@ export function useLogin(returnUrl: string) {
     otpSent: false,
   });
 
+  // ── OTP 验证码登录 ──────────────────────────
+
   const sendOTP = async (identifier: string, method: LoginMethod) => {
     setState({ loading: true, error: null, otpSent: false });
 
@@ -77,9 +79,72 @@ export function useLogin(returnUrl: string) {
     }
   };
 
+  // ── 邮箱 + 密码登录 ─────────────────────────
+
+  const signInWithPassword = async (email: string, password: string) => {
+    setState({ loading: true, error: null, otpSent: false });
+
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
+
+      setState({ loading: false, error: null, otpSent: false });
+
+      if (returnUrl) {
+        window.location.assign(returnUrl);
+      }
+
+      return true;
+    } catch (err) {
+      setState({
+        loading: false,
+        error: err instanceof Error ? err.message : "登录失败",
+        otpSent: false,
+      });
+      return false;
+    }
+  };
+
+  // ── 邮箱 + 密码注册 ─────────────────────────
+
+  const signUp = async (email: string, password: string) => {
+    setState({ loading: true, error: null, otpSent: false });
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}${returnUrl}`,
+        },
+      });
+
+      if (error) throw error;
+
+      setState({ loading: false, error: null, otpSent: false });
+
+      if (returnUrl) {
+        window.location.assign(returnUrl);
+      }
+
+      return true;
+    } catch (err) {
+      setState({
+        loading: false,
+        error: err instanceof Error ? err.message : "注册失败",
+        otpSent: false,
+      });
+      return false;
+    }
+  };
+
   const reset = () => {
     setState({ loading: false, error: null, otpSent: false });
   };
 
-  return { ...state, sendOTP, verifyOTP, reset };
+  return { ...state, sendOTP, verifyOTP, signInWithPassword, signUp, reset };
 }

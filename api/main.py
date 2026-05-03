@@ -8,25 +8,25 @@ FastAPI 应用，提供两个核心接口：
   uvicorn main:app --reload --port 8000
 """
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
 from models.schemas import (
     ChatRequest,
     ChatResponse,
     MatchResponse,
-    DemandProfileOut,
     OPCMatch,
 )
 from services import extraction
 from services.matching import match_opc_profiles
 from db.supabase import fetch_opc_profiles, save_demand_profile, save_conversation_message
+from db.auth import get_current_user, get_optional_user
 from config import config
 
 app = FastAPI(
     title="Super OPC Hub API",
     description="AI 驱动的需求提取与 OPC 精准匹配服务",
-    version="0.1.0",
+    version="0.2.0",
 )
 
 app.add_middleware(
@@ -44,9 +44,9 @@ def health():
 
 
 @app.post("/api/chat", response_model=ChatResponse)
-def chat(request: ChatRequest):
+def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
     """
-    核心对话接口。
+    核心对话接口。（需认证）
 
     接收用户的对话消息，执行以下流程：
     1. 调用 LLM 从对话中提取结构化需求画像
@@ -82,7 +82,7 @@ def chat(request: ChatRequest):
         try:
             save_demand_profile({
                 "session_id": session_id,
-                "user_id": request.user_id,
+                "user_id": user_id,
                 "project_type": demand_profile.project_type,
                 "budget_min": demand_profile.budget_min,
                 "budget_max": demand_profile.budget_max,
@@ -92,21 +92,19 @@ def chat(request: ChatRequest):
                 "status": "active",
             })
         except Exception:
-            pass  # 数据库写入失败不影响主流程
+            pass
 
     # ── Step 4: 保存对话记录 ──────────────────────
     try:
-        # 保存最新的用户消息
         if messages and messages[-1].role == "user":
             save_conversation_message({
-                "user_id": request.user_id,
+                "user_id": user_id,
                 "session_id": session_id,
                 "role": "user",
                 "content": messages[-1].content,
             })
-        # 保存 AI 回复
         save_conversation_message({
-            "user_id": request.user_id,
+            "user_id": user_id,
             "session_id": session_id,
             "role": "assistant",
             "content": assistant_message,
@@ -122,7 +120,6 @@ def chat(request: ChatRequest):
         is_matching_complete=is_matching_complete,
     )
 
-    # 匹配完成时也返回画像
     if is_matching_complete:
         response.demand_profile = demand_profile
 
@@ -130,8 +127,8 @@ def chat(request: ChatRequest):
 
 
 @app.post("/api/match", response_model=MatchResponse)
-def match(request: ChatRequest):
-    """独立的匹配接口：基于已提取的需求进行匹配（用于手动触发）"""
+def match(request: ChatRequest, user_id: str = Depends(get_current_user)):
+    """独立的匹配接口：基于已提取的需求进行匹配（需认证）"""
     demand_profile = extraction.extract_demand_profile(request.messages)
     demand_profile.session_id = request.session_id
 

@@ -2,6 +2,7 @@ import { RouteObject } from "react-router-dom";
 import { Layout } from "./layout";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Square from "./pages/Square";
 import Discovery from "./pages/Discovery";
 import Profile from "./pages/Profile";
@@ -18,6 +19,10 @@ export const routes: RouteObject[] = [
       {
         path: "/login",
         element: <Login />,
+      },
+      {
+        path: "/register",
+        element: <Register />,
       },
       {
         path: "/square",

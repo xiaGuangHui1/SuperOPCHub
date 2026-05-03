@@ -4,3 +4,4 @@ openai==1.55.0
 supabase==2.7.4
 python-dotenv==1.0.1
 pydantic==2.9.2
+python-jose[cryptography]==3.3.0

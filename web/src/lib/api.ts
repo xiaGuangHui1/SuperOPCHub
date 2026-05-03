@@ -4,6 +4,8 @@
  * 连接到后端 FastAPI 服务，提供对话和匹配接口。
  */
 
+import { supabase } from "./supabase";
+
 const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 export interface ChatMessage {
@@ -43,14 +45,33 @@ export interface ChatResponse {
   is_matching_complete: boolean;
 }
 
+async function getAuthHeaders(): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  try {
+    const { data } = await supabase.auth.getSession();
+    if (data.session?.access_token) {
+      headers["Authorization"] = `Bearer ${data.session.access_token}`;
+    }
+  } catch {
+    // 未登录时不附加 token
+  }
+
+  return headers;
+}
+
 export async function sendChatMessage(
   sessionId: string,
   messages: ChatMessage[],
   userId?: string,
 ): Promise<ChatResponse> {
+  const headers = await getAuthHeaders();
+
   const response = await fetch(`${API_BASE}/api/chat`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({
       session_id: sessionId,
       messages,

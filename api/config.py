@@ -20,6 +20,7 @@ class Config:
     # Supabase 配置
     SUPABASE_URL = os.getenv("SUPABASE_URL", "")
     SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY", "")
+    SUPABASE_JWT_SECRET = os.getenv("SUPABASE_JWT_SECRET", "")
 
     # 匹配参数
     MATCH_TOP_K = int(os.getenv("MATCH_TOP_K", "8"))
