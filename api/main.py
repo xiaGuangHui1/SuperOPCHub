@@ -58,12 +58,17 @@ def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
     session_id = request.session_id
     messages = request.messages
 
+    # 统计用户发言轮次
+    user_round = sum(1 for m in messages if m.role == "user")
+
     # ── Step 1: 提取需求画像 ──────────────────────
-    demand_profile = extraction.extract_demand_profile(messages)
+    demand_profile = extraction.extract_demand_profile(messages, user_round)
     demand_profile.session_id = session_id
 
     # ── Step 2: 生成 AI 回复 ──────────────────────
-    assistant_message = extraction.generate_assistant_message(messages, demand_profile)
+    assistant_message = extraction.generate_assistant_message(
+        messages, demand_profile, user_round
+    )
 
     # ── Step 3: 匹配（仅当需求完整）─────────────────
     matches: list[OPCMatch] = []

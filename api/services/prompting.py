@@ -4,72 +4,76 @@ from typing import List
 from models.schemas import ChatMessage, DemandProfileOut
 
 # ═══════════════════════════════════════════════════════
-# 需求提取 Prompt
+# 需求提取 System Prompt（Instructor 结构化输出）
 # ═══════════════════════════════════════════════════════
 
-EXTRACTION_SYSTEM = """你是一个专业的需求分析师，擅长从对话中提取结构化需求信息。你的任务是从用户与AI助手的对话中，提取出项目的关键需求信息。
+EXTRACTION_SYSTEM = """你是一个专业的需求分析师，从用户与 AI 的对话中提取结构化需求。
 
-你需要提取以下字段：
-- project_type: 项目类型描述（如"企业官网设计"、"电商小程序开发"、"智能家居系统"）
-- budget_min: 最低预算（数字，单位元），如无法确定则为 null
-- budget_max: 最高预算（数字，单位元），如无法确定则为 null
-- timeline: 时间要求（如"2-4周"、"1个月"、"3个月内"），如未提及则为空字符串
-- skills_required: 所需技能列表（如 ["UI设计", "React开发", "Node.js"]），尽量具体
-- description: 一句话概括项目核心需求
-- is_complete: 布尔值，是否所有关键信息都已明确（至少有 project_type 和至少一个 skill 才算基本完整）
-- missing_fields: 还缺少哪些关键信息的字段名列表
+3 轮硬上限规则：
+- 对话最多进行 3 轮（用户说了第 3 次话后），必须 is_complete = true，不再追问
+- 轻量需求（bug修复、咨询）：1-2 轮即可 is_complete = true
+- 中等需求（模块、设计）：2-3 轮
+- 重量需求（完整项目）：第 3 轮强制 is_complete = true，剩余未知字段标"待定"
 
-重要规则：
-1. 只从对话中提取明确表述的信息，不要编造
-2. 技能列表要尽量具体和准确
-3. budget 为纯数字，不要带单位或货币符号
-4. 请用 JSON 格式输出"""
+提取规则：
+1. 只提取对话中明确表述的信息，不要编造
+2. 技能列表尽量具体准确
+3. budget 为纯数字，不带单位
+4. is_complete 为 true 时 missing_fields 可为空列表
+5. is_complete 为 false 时，missing_fields 列出 1-3 个最关键缺失信息的字段名"""
 
 
-def build_extraction_prompt(messages: List[ChatMessage]) -> str:
-    """构建需求提取的用户 prompt"""
+def build_extraction_prompt(messages: List[ChatMessage], user_round: int) -> str:
+    """构建需求提取 prompt，含轮次上下文"""
     conversation = "\n".join(
-        f"{'用户' if m.role == 'user' else 'AI助手'}: {m.content}" for m in messages
+        f"{'用户' if m.role == 'user' else 'AI'}: {m.content}" for m in messages
     )
-    return f"""请从以下对话中提取需求信息：
+    force = "（这是第 3 轮，必须 is_complete = true）" if user_round >= 3 else ""
+    return f"""当前对话轮次：第 {user_round} 轮 {force}
 
+对话记录：
 {conversation}
 
-请以 JSON 格式输出提取结果。"""
+请提取需求画像。"""
 
 
 # ═══════════════════════════════════════════════════════
-# 对话引导 Prompt
+# 对话引导 System Prompt（自适应探测 + 3 轮封顶）
 # ═══════════════════════════════════════════════════════
 
-CONVERSATION_SYSTEM = """你是一个友善、专业的项目顾问助手，帮助用户明确和细化他们的项目需求。你的目标是通过自然的对话，帮助用户把模糊的想法转化为清晰的需求描述。
+CONVERSATION_SYSTEM = """你是一个友善、高效的项目顾问，帮助用户明确需求并快速匹配服务方。
 
-你的对话策略：
-1. 如果用户的需求描述很模糊，温和地追问项目类型、预算范围、时间要求、所需技能等
-2. 如果需求已经比较明确，总结确认用户的需猁，并表示马上开始匹配
-3. 一次只问1-2个问题，不要一次性问太多
-4. 回答使用中文，语言亲切但专业
-5. 控制在100字以内"""
+核心规则：
+1. 对话最多 3 轮，第 3 轮后不追问，直接输出需求画像
+2. 自适应探测：小需求少问（1-2 轮即够），大需求多问但不超过 3 轮
+3. 每轮挑 1-2 个最关键盲点问，不啰嗦不铺垫
+4. 用户说"随便""你定""无所谓"就直接跳过该字段
+5. 回答用中文，亲切但精简，控制在 80 字以内
+6. 轻量需求（bug修复/代码审查/咨询）最多问 1-2 轮就收束
+7. 重量需求（完整项目）可以问满 3 轮，但第 3 轮必须总结收束"""
 
 
 def build_conversation_prompt(
     messages: List[ChatMessage],
     profile: DemandProfileOut,
+    user_round: int,
 ) -> str:
-    """构建对话引导 prompt"""
+    """构建对话引导 prompt，含需求画像和轮次上下文"""
     conversation = "\n".join(
-        f"{'用户' if m.role == 'user' else 'AI助手'}: {m.content}" for m in messages
+        f"{'用户' if m.role == 'user' else 'AI'}: {m.content}" for m in messages
     )
 
-    if not profile.is_complete and profile.missing_fields:
-        fields = "、".join(profile.missing_fields)
-        focus = f"\n\n当前需求还不够完整，请围绕以下缺失信息进行追问：{fields}"
+    if user_round >= 3:
+        focus = "\n\n已是第 3 轮。停止追问，总结需求并告知用户即将开始匹配。"
+    elif not profile.is_complete and profile.missing_fields:
+        fields = "、".join(profile.missing_fields[:2])
+        focus = f"\n\n当前第 {user_round}/3 轮。围绕以下缺失信息追问：{fields}"
     elif profile.is_complete:
-        focus = "\n\n需求已经完整，请总结需求并告知用户即将开始匹配。"
+        focus = "\n\n需求已完整，总结需求并引导用户确认。"
     else:
-        focus = "\n\n请继续引导用户描述需求。"
+        focus = "\n\n继续引导用户描述需求。"
 
-    return f"对话历史：\n{conversation}\n\n已提取的需求：{profile.model_dump_json(indent=2)}{focus}"
+    return f"对话历史：\n{conversation}\n\n已提取的需求画像：{profile.model_dump_json(indent=2)}{focus}"
 
 
 # ═══════════════════════════════════════════════════════

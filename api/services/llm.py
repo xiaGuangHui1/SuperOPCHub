@@ -1,12 +1,17 @@
 """LLM 客户端 —— 封装 OpenAI 兼容 API 调用"""
 
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Type, TypeVar
 from openai import OpenAI
+from pydantic import BaseModel
+import instructor
 
 from config import config
 
 _client: Optional[OpenAI] = None
 _embedding_client: Optional[OpenAI] = None
+_instructor_client: Optional[instructor.Instructor] = None
+
+T = TypeVar("T", bound=BaseModel)
 
 
 def get_client() -> OpenAI:
@@ -27,6 +32,14 @@ def get_embedding_client() -> OpenAI:
     return _embedding_client
 
 
+def get_instructor_client() -> instructor.Instructor:
+    """获取 Instructor 客户端 —— 用于结构化输出"""
+    global _instructor_client
+    if _instructor_client is None:
+        _instructor_client = instructor.from_openai(get_client())
+    return _instructor_client
+
+
 def chat_completion(
     messages: List[Dict[str, str]],
     temperature: float = 0.3,
@@ -35,11 +48,6 @@ def chat_completion(
 ) -> str:
     """
     调用 LLM 聊天接口，返回文本内容。
-
-    :param messages:        标准 conversation 格式 [{"role":"user","content":"..."}]
-    :param temperature:     生成随机度
-    :param max_tokens:      最大输出 token
-    :param response_format: 结构化输出格式（如 {"type":"json_object"}）
     """
     client = get_client()
     kwargs: Dict[str, Any] = {
@@ -55,14 +63,33 @@ def chat_completion(
     return resp.choices[0].message.content or ""
 
 
+def structured_completion(
+    messages: List[Dict[str, str]],
+    response_model: Type[T],
+    temperature: float = 0.1,
+    max_tokens: int = 1024,
+    max_retries: int = 2,
+) -> T:
+    """
+    调用 LLM 并返回结构化 Pydantic 对象。
+
+    通过 Instructor 自动处理 JSON schema 注入、校验和重试。
+    """
+    client = get_instructor_client()
+    return client.chat.completions.create(
+        model=config.LLM_MODEL,
+        response_model=response_model,
+        messages=messages,
+        temperature=temperature,
+        max_tokens=max_tokens,
+        max_retries=max_retries,
+    )
+
+
 def get_embeddings(texts: List[str]) -> List[List[float]]:
     """
     获取文本嵌入向量（批量）
-
-    :param texts: 文本列表
-    :return:      嵌入向量列表，每个是 float 数组
     """
     client = get_embedding_client()
     resp = client.embeddings.create(model=config.EMBEDDING_MODEL, input=texts)
-    # 按输入顺序返回
     return [item.embedding for item in resp.data]
