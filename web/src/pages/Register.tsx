@@ -10,18 +10,46 @@ import { useLogin } from "@/hooks/useLogin";
 
 export default function Register() {
   const [email, setEmail] = useState("");
+  const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [countdown, setCountdown] = useState(0);
   const [localError, setLocalError] = useState("");
-  const { loading, error, signUp } = useLogin("/");
+  const { loading, error, otpSent, sendOTP, signUpWithOTP } = useLogin("/");
   const navigate = useNavigate();
+
+  // ── 发送验证码 ──────────────────────────────
+
+  const handleSendOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLocalError("");
+    if (!email || !email.includes("@")) {
+      setLocalError("请输入有效的邮箱地址");
+      return;
+    }
+    const success = await sendOTP(email, "email");
+    if (success) {
+      setCountdown(20);
+      const timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            clearInterval(timer);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+  };
+
+  // ── 注册（验证 OTP + 设置密码）───────────────
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError("");
 
-    if (!email || !email.includes("@")) {
-      setLocalError("请输入有效的邮箱地址");
+    if (!otp || otp.length < 4) {
+      setLocalError("请输入完整的验证码");
       return;
     }
     if (password.length < 6) {
@@ -33,7 +61,7 @@ export default function Register() {
       return;
     }
 
-    await signUp(email, password);
+    await signUpWithOTP(email, otp, password);
   };
 
   const displayError = localError || error;
@@ -68,90 +96,160 @@ export default function Register() {
                 创建账号
               </h1>
               <p className="text-gray-500 text-sm">
-                注册 Super OPC Hub，探索更多可能
+                {!otpSent
+                  ? "输入邮箱获取验证码"
+                  : "输入验证码并设置密码"}
               </p>
             </div>
 
-            <form onSubmit={handleRegister} className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-sm font-medium text-gray-700">
-                  邮箱地址
-                </Label>
-                <div className="relative">
-                  <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="your@email.com"
-                    className="pl-10 h-12"
-                  />
-                </div>
+            {/* ── 步骤 1：邮箱 + 获取验证码 ──────── */}
+            <div className="space-y-2 mb-5">
+              <Label
+                htmlFor="email"
+                className="text-sm font-medium text-gray-700"
+              >
+                邮箱地址
+              </Label>
+              <div className="relative">
+                <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="pl-10 h-12"
+                  disabled={otpSent}
+                />
               </div>
+            </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-sm font-medium text-gray-700">
-                  密码
-                </Label>
-                <div className="relative">
-                  <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    id="password"
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="至少 6 个字符"
-                    className="pl-10 h-12"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
-                  确认密码
-                </Label>
-                <div className="relative">
-                  <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <Input
-                    id="confirmPassword"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="再次输入密码"
-                    className="pl-10 h-12"
-                  />
-                </div>
-              </div>
-
-              {displayError && (
-                <p className="text-sm text-red-600">{displayError}</p>
-              )}
-
+            {!otpSent ? (
+              /* ── 发送验证码按钮 ─────────────── */
               <Button
-                type="submit"
-                disabled={loading}
+                type="button"
+                onClick={handleSendOtp}
+                disabled={loading || countdown > 0}
                 className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-medium"
               >
-                {loading ? "注册中..." : "注册"}
+                {loading
+                  ? "发送中..."
+                  : countdown > 0
+                    ? `${countdown}秒后重发`
+                    : "获取验证码"}
               </Button>
+            ) : (
+              /* ── 步骤 2：验证码 + 密码 ────────── */
+              <form onSubmit={handleRegister} className="space-y-4">
+                <p className="text-sm text-blue-600 text-center">
+                  验证码已发送至 {email}
+                </p>
 
-              <p className="text-xs text-gray-500 text-center">
-                注册即表示您同意{" "}
-                <a href="#" className="text-blue-500 hover:underline">
-                  服务条款
-                </a>{" "}
-                和{" "}
-                <a href="#" className="text-blue-500 hover:underline">
-                  隐私政策
-                </a>
-              </p>
-            </form>
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="otp"
+                    className="text-sm font-medium text-gray-700"
+                  >
+                    验证码
+                  </Label>
+                  <div className="relative">
+                    <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Input
+                      id="otp"
+                      type="text"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      placeholder="输入 6 位验证码"
+                      className="pl-10 h-12"
+                      maxLength={6}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="password"
+                    className="text-sm font-medium text-gray-700"
+                  >
+                    设置密码
+                  </Label>
+                  <div className="relative">
+                    <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Input
+                      id="password"
+                      type="password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="至少 6 个字符"
+                      className="pl-10 h-12"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label
+                    htmlFor="confirmPassword"
+                    className="text-sm font-medium text-gray-700"
+                  >
+                    确认密码
+                  </Label>
+                  <div className="relative">
+                    <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="再次输入密码"
+                      className="pl-10 h-12"
+                    />
+                  </div>
+                </div>
+
+                {displayError && (
+                  <p className="text-sm text-red-600">{displayError}</p>
+                )}
+
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-medium"
+                >
+                  {loading ? "注册中..." : "注册"}
+                </Button>
+
+                <p className="text-xs text-gray-500 text-center">
+                  未收到验证码？{" "}
+                  <button
+                    type="button"
+                    onClick={handleSendOtp}
+                    disabled={countdown > 0}
+                    className="text-blue-500 hover:underline disabled:text-gray-400"
+                  >
+                    {countdown > 0 ? `${countdown}秒后重发` : "重新发送"}
+                  </button>
+                </p>
+              </form>
+            )}
+
+            <p className="text-xs text-gray-500 text-center mt-5">
+              注册即表示您同意{" "}
+              <a href="#" className="text-blue-500 hover:underline">
+                服务条款
+              </a>{" "}
+              和{" "}
+              <a href="#" className="text-blue-500 hover:underline">
+                隐私政策
+              </a>
+            </p>
           </div>
 
           <p className="text-center text-sm text-gray-500 mt-6">
             已有账号？{" "}
-            <Link to="/login" className="text-blue-500 font-medium hover:underline">
+            <Link
+              to="/login"
+              className="text-blue-500 font-medium hover:underline"
+            >
               去登录
             </Link>
           </p>
