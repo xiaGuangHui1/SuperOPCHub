@@ -26,6 +26,9 @@ function translateError(message: string): string {
   if (message.includes("token is invalid")) {
     return "验证码错误，请检查后重试";
   }
+  if (message.includes("only request this after") || message.includes("security purposes")) {
+    return "操作太频繁，请稍后再试";
+  }
   return message;
 }
 
