@@ -127,36 +127,25 @@ export function useLogin(returnUrl: string) {
     }
   };
 
-  // ── OTP 验证码注册（验证邮箱 + 设置密码）─────
+  // ── 邮箱 + 密码注册 ─────────────────────────
 
   /**
-   * 注册流程：
-   * 1. 用户输入邮箱 → 调用 sendOTP 发送验证码
-   * 2. 用户输入验证码 + 密码
-   * 3. 调用本函数：
-   *    a. verifyOtp 验证验证码（同时完成邮箱验证）
-   *    b. updateUser 设置密码
-   *    c. 跳转首页
+   * 直接调用 signUp 创建持久账号。
+   * 强制 signOut 清空旧会话，确保用新账号登录。
    */
-  const signUpWithOTP = async (email: string, token: string, password: string) => {
+  const signUp = async (email: string, password: string) => {
     setState({ loading: true, error: null, otpSent: false });
 
     try {
-      // Step a: 验证 OTP 验证码
-      const { error: verifyError } = await supabase.auth.verifyOtp({
+      // 先登出旧会话，避免状态冲突
+      await supabase.auth.signOut();
+
+      const { error } = await supabase.auth.signUp({
         email,
-        token,
-        type: "email",
-      });
-
-      if (verifyError) throw verifyError;
-
-      // Step b: OTP 验证通过后，设置密码
-      const { error: updateError } = await supabase.auth.updateUser({
         password,
       });
 
-      if (updateError) throw updateError;
+      if (error) throw error;
 
       setState({ loading: false, error: null, otpSent: false });
 
@@ -184,7 +173,7 @@ export function useLogin(returnUrl: string) {
     sendOTP,
     verifyOTP,
     signInWithPassword,
-    signUpWithOTP,
+    signUp,
     reset,
   };
 }

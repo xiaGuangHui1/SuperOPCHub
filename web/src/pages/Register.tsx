@@ -4,40 +4,17 @@ import { PageMeta } from "@/components/common/PageMeta";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FaEnvelope, FaLock, FaArrowLeft, FaShieldAlt } from "react-icons/fa";
+import { FaEnvelope, FaLock, FaArrowLeft } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { useLogin } from "@/hooks/useLogin";
 
 export default function Register() {
   const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [countdown, setCountdown] = useState(0);
   const [localError, setLocalError] = useState("");
-  const { loading, error, sendOTP, signUpWithOTP } = useLogin("/");
+  const { loading, error, signUp } = useLogin("/");
   const navigate = useNavigate();
-
-  const handleSendOtp = async () => {
-    setLocalError("");
-    if (!email || !email.includes("@")) {
-      setLocalError("请输入有效的邮箱地址");
-      return;
-    }
-    const success = await sendOTP(email, "email");
-    if (success) {
-      setCountdown(20);
-      const timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
-  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,10 +22,6 @@ export default function Register() {
 
     if (!email || !email.includes("@")) {
       setLocalError("请输入有效的邮箱地址");
-      return;
-    }
-    if (!otp || otp.length < 4) {
-      setLocalError("请先获取并输入验证码");
       return;
     }
     if (password.length < 6) {
@@ -60,7 +33,7 @@ export default function Register() {
       return;
     }
 
-    await signUpWithOTP(email, otp, password);
+    await signUp(email, password);
   };
 
   const displayError = localError || error;
@@ -95,12 +68,11 @@ export default function Register() {
                 创建账号
               </h1>
               <p className="text-gray-500 text-sm">
-                输入邮箱获取验证码，设置密码完成注册
+                注册 Super OPC Hub，探索更多可能
               </p>
             </div>
 
             <form onSubmit={handleRegister} className="space-y-4">
-              {/* ── 邮箱 ───────────────────────── */}
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-sm font-medium text-gray-700">
                   邮箱地址
@@ -118,37 +90,6 @@ export default function Register() {
                 </div>
               </div>
 
-              {/* ── 验证码 + 发送按钮 ──────────── */}
-              <div className="space-y-2">
-                <Label htmlFor="otp" className="text-sm font-medium text-gray-700">
-                  验证码
-                </Label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <FaShieldAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <Input
-                      id="otp"
-                      type="text"
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
-                      placeholder="6 位验证码"
-                      className="pl-10 h-12"
-                      maxLength={6}
-                    />
-                  </div>
-                  <Button
-                    type="button"
-                    onClick={handleSendOtp}
-                    disabled={loading || countdown > 0}
-                    variant="outline"
-                    className="h-12 px-4 whitespace-nowrap text-sm border-gray-200"
-                  >
-                    {countdown > 0 ? `${countdown}s` : "发送验证码"}
-                  </Button>
-                </div>
-              </div>
-
-              {/* ── 密码 ───────────────────────── */}
               <div className="space-y-2">
                 <Label htmlFor="password" className="text-sm font-medium text-gray-700">
                   设置密码
@@ -166,7 +107,6 @@ export default function Register() {
                 </div>
               </div>
 
-              {/* ── 确认密码 ───────────────────── */}
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">
                   确认密码
