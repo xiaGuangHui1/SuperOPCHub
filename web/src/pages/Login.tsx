@@ -4,32 +4,30 @@ import { PageMeta } from "@/components/common/PageMeta";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FaEnvelope, FaLock, FaTimes } from "react-icons/fa";
+import { FaEnvelope, FaLock, FaTimes, FaShieldAlt } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { useLogin } from "@/hooks/useLogin";
 
 type AuthTab = "otp" | "password";
 
 export default function Login() {
-  // ── 共享状态 ──────────────────────────────────
   const [activeTab, setActiveTab] = useState<AuthTab>("password");
-  const { loading, error, otpSent, sendOTP, verifyOTP, signInWithPassword } =
+  const { loading, error, sendOTP, verifyOTP, signInWithPassword } =
     useLogin("/");
   const navigate = useNavigate();
 
-  // ── OTP 表单状态 ──────────────────────────────
-  const [email, setEmail] = useState("");
+  // ── OTP 表单 ──────────────────────────────────
+  const [otpEmail, setOtpEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [countdown, setCountdown] = useState(0);
 
-  // ── 密码表单状态 ──────────────────────────────
+  // ── 密码表单 ──────────────────────────────────
   const [pwdEmail, setPwdEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !email.includes("@")) return;
-    const success = await sendOTP(email, "email");
+  const handleSendOtp = async () => {
+    if (!otpEmail || !otpEmail.includes("@")) return;
+    const success = await sendOTP(otpEmail, "email");
     if (success) {
       setCountdown(20);
       const timer = setInterval(() => {
@@ -47,7 +45,7 @@ export default function Login() {
   const handleVerifyOtp = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!otp || otp.length < 4) return;
-    await verifyOTP(email, otp, "email");
+    await verifyOTP(otpEmail, otp, "email");
   };
 
   const handlePasswordLogin = async (e: React.FormEvent) => {
@@ -114,68 +112,52 @@ export default function Login() {
               </button>
             </div>
 
-            {/* ── 验证码登录 Tab ────────────────── */}
-            {activeTab === "otp" && !otpSent && (
-              <form onSubmit={handleSendOtp} className="space-y-6">
+            {/* ── OTP 验证码登录 ────────────────── */}
+            {activeTab === "otp" && (
+              <form onSubmit={handleVerifyOtp} className="space-y-4">
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="email"
-                    className="text-sm font-medium text-gray-700"
-                  >
+                  <Label htmlFor="otpEmail" className="text-sm font-medium text-gray-700">
                     邮箱地址
                   </Label>
                   <div className="relative">
                     <FaEnvelope className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <Input
-                      id="email"
+                      id="otpEmail"
                       type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      value={otpEmail}
+                      onChange={(e) => setOtpEmail(e.target.value)}
                       placeholder="your@email.com"
                       className="pl-10 h-12"
                     />
                   </div>
                 </div>
 
-                {error && <p className="text-sm text-red-600">{error}</p>}
-
-                <Button
-                  type="submit"
-                  disabled={loading || countdown > 0}
-                  className="w-full h-12 bg-blue-500 hover:bg-blue-600 text-white font-medium"
-                >
-                  {loading
-                    ? "发送中..."
-                    : countdown > 0
-                      ? `${countdown}秒后重发`
-                      : "获取验证码"}
-                </Button>
-              </form>
-            )}
-
-            {activeTab === "otp" && otpSent && (
-              <form onSubmit={handleVerifyOtp} className="space-y-6">
-                <p className="text-sm text-gray-500 text-center">
-                  验证码已发送至 {email}
-                </p>
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="otp"
-                    className="text-sm font-medium text-gray-700"
-                  >
+                  <Label htmlFor="otp" className="text-sm font-medium text-gray-700">
                     验证码
                   </Label>
-                  <div className="relative">
-                    <FaLock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <Input
-                      id="otp"
-                      type="text"
-                      value={otp}
-                      onChange={(e) => setOtp(e.target.value)}
-                      placeholder="输入 6 位验证码"
-                      className="pl-10 h-12"
-                      maxLength={6}
-                    />
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <FaShieldAlt className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <Input
+                        id="otp"
+                        type="text"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                        placeholder="6 位验证码"
+                        className="pl-10 h-12"
+                        maxLength={6}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      onClick={handleSendOtp}
+                      disabled={loading || countdown > 0}
+                      variant="outline"
+                      className="h-12 px-4 whitespace-nowrap text-sm border-gray-200"
+                    >
+                      {countdown > 0 ? `${countdown}s` : "发送验证码"}
+                    </Button>
                   </div>
                 </div>
 
@@ -188,41 +170,14 @@ export default function Login() {
                 >
                   {loading ? "验证中..." : "登录/注册"}
                 </Button>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setEmail("");
-                    setOtp("");
-                  }}
-                  className="w-full h-12 border-gray-200 text-gray-700 hover:bg-gray-50"
-                >
-                  返回修改邮箱
-                </Button>
-
-                <p className="text-xs text-gray-500 text-center">
-                  未收到验证码？{" "}
-                  <button
-                    type="button"
-                    onClick={handleSendOtp}
-                    disabled={countdown > 0}
-                    className="text-blue-500 hover:underline disabled:text-gray-400"
-                  >
-                    {countdown > 0 ? `${countdown}秒后重发` : "重新发送"}
-                  </button>
-                </p>
               </form>
             )}
 
-            {/* ── 密码登录 Tab ──────────────────── */}
+            {/* ── 密码登录 ──────────────────────── */}
             {activeTab === "password" && (
-              <form onSubmit={handlePasswordLogin} className="space-y-5">
+              <form onSubmit={handlePasswordLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="pwdEmail"
-                    className="text-sm font-medium text-gray-700"
-                  >
+                  <Label htmlFor="pwdEmail" className="text-sm font-medium text-gray-700">
                     邮箱地址
                   </Label>
                   <div className="relative">
@@ -239,10 +194,7 @@ export default function Login() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label
-                    htmlFor="password"
-                    className="text-sm font-medium text-gray-700"
-                  >
+                  <Label htmlFor="password" className="text-sm font-medium text-gray-700">
                     密码
                   </Label>
                   <div className="relative">
@@ -284,10 +236,7 @@ export default function Login() {
 
           <p className="text-center text-sm text-gray-500 mt-6">
             还没有账号？{" "}
-            <Link
-              to="/register"
-              className="text-blue-500 font-medium hover:underline"
-            >
+            <Link to="/register" className="text-blue-500 font-medium hover:underline">
               去注册
             </Link>
           </p>

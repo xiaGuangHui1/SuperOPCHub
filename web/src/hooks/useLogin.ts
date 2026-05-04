@@ -44,7 +44,7 @@ export function useLogin(returnUrl: string) {
     try {
       const { error } = await supabase.auth.signInWithOtp(
         method === "email"
-          ? { email: identifier, options: { emailRedirectTo: returnUrl } }
+          ? { email: identifier }
           : { phone: identifier },
       );
 
