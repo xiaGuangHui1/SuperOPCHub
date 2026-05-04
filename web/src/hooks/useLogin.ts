@@ -140,9 +140,6 @@ export function useLogin(returnUrl: string) {
     setState({ loading: true, error: null, otpSent: false });
 
     try {
-      // 先登出旧会话，避免状态冲突
-      await supabase.auth.signOut();
-
       const { error } = await supabase.auth.signUp({
         email,
         password,
