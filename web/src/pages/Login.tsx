@@ -12,7 +12,7 @@ type AuthTab = "otp" | "password";
 
 export default function Login() {
   // ── 共享状态 ──────────────────────────────────
-  const [activeTab, setActiveTab] = useState<AuthTab>("otp");
+  const [activeTab, setActiveTab] = useState<AuthTab>("password");
   const { loading, error, otpSent, sendOTP, verifyOTP, signInWithPassword } =
     useLogin("/");
   const navigate = useNavigate();
@@ -92,17 +92,6 @@ export default function Login() {
             <div className="flex border-b border-gray-200 mb-6">
               <button
                 type="button"
-                onClick={() => setActiveTab("otp")}
-                className={`flex-1 pb-3 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === "otp"
-                    ? "border-blue-500 text-blue-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                验证码登录
-              </button>
-              <button
-                type="button"
                 onClick={() => setActiveTab("password")}
                 className={`flex-1 pb-3 text-sm font-medium border-b-2 transition-colors ${
                   activeTab === "password"
@@ -111,6 +100,17 @@ export default function Login() {
                 }`}
               >
                 密码登录
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("otp")}
+                className={`flex-1 pb-3 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === "otp"
+                    ? "border-blue-500 text-blue-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700"
+                }`}
+              >
+                验证码登录
               </button>
             </div>
 
