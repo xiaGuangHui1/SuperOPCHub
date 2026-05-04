@@ -19,25 +19,42 @@ export function useAuth() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
 
-        if (session?.user) {
+        console.log('[useAuth] session:', session?.user?.email ?? null);
+
+        if (!session?.user) {
+          setUser(null);
+          setLoading(false);
+          return;
+        }
+
+        // 先基于 session 设置最基本的用户信息，
+        // 即使 profiles 表查询失败也不影响登录状态
+        setUser({
+          id: session.user.id,
+          email: session.user.email || '',
+        });
+
+        try {
           const { data: profile } = await supabase
-            .from('profiles')
+            .from('opc_profiles')
             .select('*')
-            .eq('id', session.user.id)
+            .eq('user_id', session.user.id)
             .single();
 
           setUser({
             id: session.user.id,
             email: session.user.email || '',
-            nickname: profile?.nickname,
+            nickname: profile?.name,
             avatar_url: profile?.avatar_url,
-            phone: profile?.phone,
+            phone: profile?.contact_phone,
             role: profile?.role,
           });
-        } else {
-          setUser(null);
+        } catch {
+          // opc_profiles 无记录不影响登录态
+          console.warn('无法读取 opc_profiles，使用 session 基本信息');
         }
       } catch (error) {
+        // getSession 本身失败才视为未登录
         console.error('Error checking session:', error);
         setUser(null);
       } finally {

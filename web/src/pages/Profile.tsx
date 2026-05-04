@@ -78,16 +78,16 @@ export default function Profile() {
   const fetchUserProfile = async () => {
     if (!user) return;
     const { data, error } = await supabase
-      .from("profiles")
-      .select("full_name, phone, avatar_url")
-      .eq("id", user.id)
+      .from("opc_profiles")
+      .select("name, contact_phone, avatar_url")
+      .eq("user_id", user.id)
       .single();
 
     if (data && !error) {
       setFormData((prev) => ({
         ...prev,
-        full_name: data.full_name || "",
-        phone: data.phone || "",
+        full_name: data.name || "",
+        phone: data.contact_phone || "",
       }));
     }
   };
@@ -100,12 +100,12 @@ export default function Profile() {
   const handleSaveProfile = async () => {
     if (!user) return;
     const { error } = await supabase
-      .from("profiles")
+      .from("opc_profiles")
       .update({
-        full_name: formData.full_name,
-        phone: formData.phone,
+        name: formData.full_name,
+        contact_phone: formData.phone,
       })
-      .eq("id", user.id);
+      .eq("user_id", user.id);
 
     if (!error) {
       setIsEditing(false);

@@ -133,26 +133,35 @@ export function useLogin(returnUrl: string) {
   // ── 邮箱 + 密码注册 ─────────────────────────
 
   /**
-   * 直接调用 signUp 创建持久账号。
-   * 强制 signOut 清空旧会话，确保用新账号登录。
+   * 注册 + 自动登录：
+   * signUp 在 email confirmation 关闭时会直接返回 session；
+   * 开启时会返回 null session（需要用户点击确认邮件）。
+   * 注册成功用 window.location.assign 做整页重载，
+   * 确保 useAuth 挂载时 getSession() 能从 localStorage 读到 session。
    */
   const signUp = async (email: string, password: string) => {
     setState({ loading: true, error: null, otpSent: false });
 
     try {
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
       });
 
       if (error) throw error;
 
-      setState({ loading: false, error: null, otpSent: false });
-
-      if (returnUrl) {
-        window.location.assign(returnUrl);
+      // data.user 为 null → 邮箱已注册（Supabase 安全设计，不返回错误）
+      if (!data.user) {
+        setState({
+          loading: false,
+          error: "该邮箱已注册，请直接登录",
+          otpSent: false,
+        });
+        return false;
       }
 
+      // 用户创建成功，返回 true 由调用方决定后续跳转
+      setState({ loading: false, error: null, otpSent: false });
       return true;
     } catch (err) {
       setState({

@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { PageMeta } from "@/components/common/PageMeta";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FaEnvelope, FaLock, FaTimes, FaShieldAlt } from "react-icons/fa";
+import { FaEnvelope, FaLock, FaShieldAlt } from "react-icons/fa";
 import { motion } from "framer-motion";
 import { useLogin } from "@/hooks/useLogin";
 
@@ -14,7 +14,6 @@ export default function Login() {
   const [activeTab, setActiveTab] = useState<AuthTab>("password");
   const { loading, error, sendOTP, verifyOTP, signInWithPassword } =
     useLogin("/");
-  const navigate = useNavigate();
 
   // ── OTP 表单 ──────────────────────────────────
   const [otpEmail, setOtpEmail] = useState("");
@@ -69,14 +68,6 @@ export default function Login() {
           className="w-full max-w-md"
         >
           <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 relative">
-            <button
-              onClick={() => navigate("/")}
-              className="absolute top-4 left-4 w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
-              aria-label="返回首页"
-            >
-              <FaTimes className="w-4 h-4" />
-            </button>
-
             <div className="text-center mb-8">
               <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg mx-auto mb-4">
                 <span className="text-white font-bold text-2xl">OPC</span>

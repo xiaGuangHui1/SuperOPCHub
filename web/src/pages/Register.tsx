@@ -57,7 +57,10 @@ export default function Register() {
     }
 
     // OTP 不是必须的，signUp 直接创建持久账号
-    await signUp(email, password);
+    const success = await signUp(email, password);
+    if (success) {
+      navigate("/login");
+    }
   };
 
   const displayError = localError || error;
