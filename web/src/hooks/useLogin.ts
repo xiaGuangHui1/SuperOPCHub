@@ -133,11 +133,12 @@ export function useLogin(returnUrl: string) {
   // ── 邮箱 + 密码注册 ─────────────────────────
 
   /**
-   * 注册 + 自动登录：
-   * signUp 在 email confirmation 关闭时会直接返回 session；
-   * 开启时会返回 null session（需要用户点击确认邮件）。
-   * 注册成功用 window.location.assign 做整页重载，
-   * 确保 useAuth 挂载时 getSession() 能从 localStorage 读到 session。
+   * 邮箱注册。
+   *
+   * 重复注册检测：
+   * Supabase signUp 对已注册邮箱不抛错误，而是返回一个占位 user 对象
+   * （data.user 存在但 identities 为空数组）。新建用户的 identities 包含
+   * 至少一个 identity 条目，因此通过 identities 长度区分新旧用户。
    */
   const signUp = async (email: string, password: string) => {
     setState({ loading: true, error: null, otpSent: false });
@@ -150,8 +151,10 @@ export function useLogin(returnUrl: string) {
 
       if (error) throw error;
 
-      // data.user 为 null → 邮箱已注册（Supabase 安全设计，不返回错误）
-      if (!data.user) {
+      console.log('[signUp] raw data:', JSON.stringify(data, null, 2));
+
+      // identities 为空 → 已注册邮箱的占位 user，阻止重复注册
+      if (data.user?.identities && data.user.identities.length === 0) {
         setState({
           loading: false,
           error: "该邮箱已注册，请直接登录",
@@ -160,7 +163,15 @@ export function useLogin(returnUrl: string) {
         return false;
       }
 
-      // 用户创建成功，返回 true 由调用方决定后续跳转
+      if (!data.user) {
+        setState({
+          loading: false,
+          error: "注册失败，请稍后重试",
+          otpSent: false,
+        });
+        return false;
+      }
+
       setState({ loading: false, error: null, otpSent: false });
       return true;
     } catch (err) {

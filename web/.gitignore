@@ -24,6 +24,9 @@ dist-ssr
 *.sln
 *.sw?
 
+# Claude Code
+.claude/
+
 .VSCodeCounter
 
 *.zip
