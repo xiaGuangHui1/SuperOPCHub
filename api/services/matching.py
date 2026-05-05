@@ -1,6 +1,7 @@
 """OPC 匹配引擎 —— 多维度精准匹配"""
 
 from typing import List, Dict, Any
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from models.schemas import DemandProfileOut, OPCMatch
 from services.embedding import embed_texts, cosine_similarity, clear_cache
 from services.llm import chat_completion
@@ -107,12 +108,11 @@ def _compute_role_scores(
     demand: DemandProfileOut,
     opc_profiles: List[Dict[str, Any]],
 ) -> List[float]:
-    """通过 LLM 评估角色适配度 [0, 100]"""
+    """通过 LLM 评估角色适配度 [0, 100]（并行调用，大幅减少等待时间）"""
     if not demand.project_type:
         return [50.0] * len(opc_profiles)
 
-    scores = []
-    for profile in opc_profiles:
+    def _score_one(index: int, profile: Dict[str, Any]) -> tuple[int, float]:
         try:
             resp = chat_completion(
                 messages=[
@@ -126,13 +126,30 @@ def _compute_role_scores(
                 ],
                 temperature=0.0,
                 max_tokens=4,
-                timeout=8.0,  # 单次角色评分短超时，避免累积卡死
+                timeout=8.0,
             )
             score = float(resp.strip())
-            scores.append(min(max(score, 0), 100))
+            return index, min(max(score, 0), 100)
         except Exception:
-            # API 超时/异常时给默认中等分，不影响整体流程
-            scores.append(50.0)
+            return index, 50.0
+
+    # 初始化默认分数
+    scores: List[float] = [50.0] * len(opc_profiles)
+
+    # 并行调用所有角色评分
+    max_workers = min(len(opc_profiles), 6)
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {
+            executor.submit(_score_one, i, profile): i
+            for i, profile in enumerate(opc_profiles)
+        }
+        for future in as_completed(futures):
+            try:
+                index, score = future.result()
+                scores[index] = score
+            except Exception:
+                pass  # 保持默认 50.0
+
     return scores
 
 
