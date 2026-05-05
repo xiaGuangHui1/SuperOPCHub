@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { FaBriefcase, FaMoneyBillWave, FaClock, FaTools, FaUsers, FaUserCheck, FaIndustry } from "react-icons/fa";
+import { FaBriefcase, FaClock, FaTools, FaUsers, FaUserCheck, FaIndustry } from "react-icons/fa";
 
 export interface DemandProfileData {
   project_type: string;
@@ -20,8 +20,6 @@ interface DemandProfileProps {
 
 export function DemandProfile({ isVisible, data }: DemandProfileProps) {
   if (!isVisible) return null;
-
-  const hasBudget = data && (data.budget_min !== null || data.budget_max !== null);
 
   return (
     <motion.div
@@ -46,24 +44,6 @@ export function DemandProfile({ isVisible, data }: DemandProfileProps) {
               <p className="font-medium text-sm sm:text-base text-gray-900">{data?.project_type || "待定"}</p>
             </div>
           </div>
-
-          {hasBudget && (
-            <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-gray-50 rounded-xl">
-              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <FaMoneyBillWave className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
-              </div>
-              <div>
-                <p className="text-xs sm:text-sm text-gray-500 mb-1">预算范围</p>
-                <p className="font-medium text-sm sm:text-base text-gray-900">
-                  {data?.budget_min && data?.budget_max
-                    ? `¥${data.budget_min.toLocaleString()} - ¥${data.budget_max.toLocaleString()}`
-                    : data?.budget_min
-                    ? `¥${data.budget_min.toLocaleString()} 起`
-                    : `不超过 ¥${data.budget_max!.toLocaleString()}`}
-                </p>
-              </div>
-            </div>
-          )}
 
           <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-gray-50 rounded-xl">
             <div className="w-9 h-9 sm:w-10 sm:h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
