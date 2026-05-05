@@ -94,10 +94,10 @@ def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
             messages, demand_profile, user_round
         )
 
-        # ── Step 3: 匹配（第 3 轮自动触发，或需求完整且用户确认）──
+        # ── Step 3: 匹配（需求识别出来就匹配，不设轮次门槛）──
         matches: list[OPCMatch] = []
         is_matching_complete = False
-        if user_round >= 3 or (demand_profile.is_complete and _user_confirmed_demand(messages)):
+        if demand_profile.is_complete:
             try:
                 opc_profiles = fetch_opc_profiles()
                 matches = match_opc_profiles(
