@@ -3,6 +3,7 @@
 from typing import List, Dict, Any, Optional, Type, TypeVar
 from openai import OpenAI
 from pydantic import BaseModel
+import httpx
 import instructor
 
 from config import config
@@ -13,11 +14,20 @@ _instructor_client: Optional[instructor.Instructor] = None
 
 T = TypeVar("T", bound=BaseModel)
 
+# 超时配置：避免 LLM/Embedding 调用长时间卡死导致浏览器 fetch 超时
+_LLM_TIMEOUT = httpx.Timeout(30.0, connect=5.0)
+_EMBEDDING_TIMEOUT = httpx.Timeout(15.0, connect=5.0)
+
 
 def get_client() -> OpenAI:
     global _client
     if _client is None:
-        _client = OpenAI(api_key=config.LLM_API_KEY, base_url=config.LLM_BASE_URL)
+        _client = OpenAI(
+            api_key=config.LLM_API_KEY,
+            base_url=config.LLM_BASE_URL,
+            timeout=_LLM_TIMEOUT,
+            max_retries=1,
+        )
     return _client
 
 
@@ -28,6 +38,8 @@ def get_embedding_client() -> OpenAI:
         _embedding_client = OpenAI(
             api_key=config.EMBEDDING_API_KEY,
             base_url=config.EMBEDDING_BASE_URL,
+            timeout=_EMBEDDING_TIMEOUT,
+            max_retries=1,
         )
     return _embedding_client
 
@@ -45,9 +57,12 @@ def chat_completion(
     temperature: float = 0.3,
     max_tokens: int = 1024,
     response_format: Optional[Dict[str, Any]] = None,
+    timeout: Optional[float] = None,
 ) -> str:
     """
     调用 LLM 聊天接口，返回文本内容。
+
+    :param timeout: 单次调用超时秒数，None 则使用客户端默认超时
     """
     client = get_client()
     kwargs: Dict[str, Any] = {
@@ -58,6 +73,8 @@ def chat_completion(
     }
     if response_format:
         kwargs["response_format"] = response_format
+    if timeout is not None:
+        kwargs["timeout"] = timeout
 
     resp = client.chat.completions.create(**kwargs)
     return resp.choices[0].message.content or ""

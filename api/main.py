@@ -12,6 +12,8 @@ FastAPI 应用，提供两个核心接口：
   4. 用户可继续对话调整需求，自动重新匹配
 """
 
+import traceback
+import logging
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -20,12 +22,15 @@ from models.schemas import (
     ChatResponse,
     MatchResponse,
     OPCMatch,
+    DemandProfileOut,
 )
 from services import extraction
 from services.matching import match_opc_profiles
 from db.supabase import fetch_opc_profiles, save_demand_profile, save_conversation_message
 from db.auth import get_current_user, get_optional_user
 from config import config
+
+logger = logging.getLogger("uvicorn")
 
 app = FastAPI(
     title="Super OPC Hub API",
@@ -63,74 +68,84 @@ def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
     session_id = request.session_id
     messages = request.messages
 
-    # 统计用户发言轮次（提供给 LLM 作为上下文，不再作为强制收束条件）
-    user_round = sum(1 for m in messages if m.role == "user")
+    try:
+        # 统计用户发言轮次（提供给 LLM 作为上下文，不再作为强制收束条件）
+        user_round = sum(1 for m in messages if m.role == "user")
 
-    # ── Step 1: 提取需求画像 ──────────────────────
-    demand_profile = extraction.extract_demand_profile(messages, user_round)
-    demand_profile.session_id = session_id
+        # ── Step 1: 提取需求画像 ──────────────────────
+        demand_profile = extraction.extract_demand_profile(messages, user_round)
+        demand_profile.session_id = session_id
 
-    # ── Step 2: 生成 AI 回复 ──────────────────────
-    assistant_message = extraction.generate_assistant_message(
-        messages, demand_profile, user_round
-    )
-
-    # ── Step 3: 匹配（仅当需求完整）─────────────────
-    matches: list[OPCMatch] = []
-    is_matching_complete = False
-    if demand_profile.is_complete:
-        opc_profiles = fetch_opc_profiles()
-        matches = match_opc_profiles(
-            demand_profile,
-            opc_profiles,
-            top_k=config.MATCH_TOP_K,
-            min_score=config.MATCH_MIN_SCORE,
+        # ── Step 2: 生成 AI 回复 ──────────────────────
+        assistant_message = extraction.generate_assistant_message(
+            messages, demand_profile, user_round
         )
-        is_matching_complete = True
 
-        # 保存需求画像
+        # ── Step 3: 匹配（仅当需求完整）─────────────────
+        matches: list[OPCMatch] = []
+        is_matching_complete = False
+        if demand_profile.is_complete:
+            opc_profiles = fetch_opc_profiles()
+            matches = match_opc_profiles(
+                demand_profile,
+                opc_profiles,
+                top_k=config.MATCH_TOP_K,
+                min_score=config.MATCH_MIN_SCORE,
+            )
+            is_matching_complete = True
+
+            # 保存需求画像
+            try:
+                save_demand_profile({
+                    "session_id": session_id,
+                    "user_id": user_id,
+                    "project_type": demand_profile.project_type,
+                    "budget_min": demand_profile.budget_min,
+                    "budget_max": demand_profile.budget_max,
+                    "timeline": demand_profile.timeline,
+                    "skills_required": ",".join(demand_profile.skills_required),
+                    "description": demand_profile.description,
+                    "status": "active",
+                })
+            except Exception:
+                pass
+
+        # ── Step 4: 保存对话记录 ──────────────────────
         try:
-            save_demand_profile({
-                "session_id": session_id,
+            if messages and messages[-1].role == "user":
+                save_conversation_message({
+                    "user_id": user_id,
+                    "session_id": session_id,
+                    "role": "user",
+                    "content": messages[-1].content,
+                })
+            save_conversation_message({
                 "user_id": user_id,
-                "project_type": demand_profile.project_type,
-                "budget_min": demand_profile.budget_min,
-                "budget_max": demand_profile.budget_max,
-                "timeline": demand_profile.timeline,
-                "skills_required": ",".join(demand_profile.skills_required),
-                "description": demand_profile.description,
-                "status": "active",
+                "session_id": session_id,
+                "role": "assistant",
+                "content": assistant_message,
             })
         except Exception:
             pass
 
-    # ── Step 4: 保存对话记录 ──────────────────────
-    try:
-        if messages and messages[-1].role == "user":
-            save_conversation_message({
-                "user_id": user_id,
-                "session_id": session_id,
-                "role": "user",
-                "content": messages[-1].content,
-            })
-        save_conversation_message({
-            "user_id": user_id,
-            "session_id": session_id,
-            "role": "assistant",
-            "content": assistant_message,
-        })
-    except Exception:
-        pass
+        return ChatResponse(
+            session_id=session_id,
+            assistant_message=assistant_message,
+            demand_profile=demand_profile,
+            matches=matches,
+            is_matching_complete=is_matching_complete,
+        )
 
-    response = ChatResponse(
-        session_id=session_id,
-        assistant_message=assistant_message,
-        demand_profile=demand_profile,
-        matches=matches,
-        is_matching_complete=is_matching_complete,
-    )
+    except Exception as e:
+        logger.error(f"[/api/chat] 处理失败: {e}\n{traceback.format_exc()}")
 
-    return response
+        return ChatResponse(
+            session_id=session_id,
+            assistant_message="抱歉，处理您的请求时遇到了一些问题，请稍后重试或换个方式描述您的需求。",
+            demand_profile=DemandProfileOut(session_id=session_id),
+            matches=[],
+            is_matching_complete=False,
+        )
 
 
 @app.post("/api/match", response_model=MatchResponse)

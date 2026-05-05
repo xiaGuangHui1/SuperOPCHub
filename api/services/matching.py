@@ -126,10 +126,12 @@ def _compute_role_scores(
                 ],
                 temperature=0.0,
                 max_tokens=4,
+                timeout=8.0,  # 单次角色评分短超时，避免累积卡死
             )
             score = float(resp.strip())
             scores.append(min(max(score, 0), 100))
-        except (ValueError, TypeError):
+        except Exception:
+            # API 超时/异常时给默认中等分，不影响整体流程
             scores.append(50.0)
     return scores
 
