@@ -19,7 +19,7 @@ def extract_demand_profile(
     - 格式错误自动重试（最多 2 次）
 
     :param messages:   完整对话历史
-    :param user_round: 当前用户发言轮次（用于 3 轮强制收束）
+    :param user_round: 当前用户发言轮次（提供给 LLM 作为上下文参考）
     """
     system_prompt = prompting.EXTRACTION_SYSTEM
     user_prompt = prompting.build_extraction_prompt(messages, user_round)
@@ -33,11 +33,6 @@ def extract_demand_profile(
         temperature=0.1,
         max_retries=2,
     )
-
-    # 第 3 轮强制收束：无视 is_complete，直接标记完整
-    if user_round >= 3:
-        profile.is_complete = True
-        profile.missing_fields = []
 
     profile.session_id = ""
     return profile

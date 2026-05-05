@@ -6,6 +6,10 @@ FastAPI 应用，提供两个核心接口：
 
 使用方式：
   uvicorn main:app --reload --port 8000
+
+对话流程（渐进式需求澄清，不设轮次上限）：
+  1. 提取需求画像 → 2. 生成 AI 引导回复 → 3. 需求完整时触发匹配
+  4. 用户可继续对话调整需求，自动重新匹配
 """
 
 from fastapi import FastAPI, Depends
@@ -48,17 +52,18 @@ def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
     """
     核心对话接口。（需认证）
 
-    接收用户的对话消息，执行以下流程：
+    渐进式需求澄清流程（不设轮次上限）：
     1. 调用 LLM 从对话中提取结构化需求画像
-    2. 如果需求不完整，生成追问引导消息
+    2. 如果需求不完整，生成引导追问消息
     3. 如果需求完整，执行多维度 OPC 匹配
-    4. 保存对话记录到数据库
-    5. 返回 AI 回复 + 需求画像 + 匹配结果
+    4. 用户可继续对话调整需求，自动重新匹配
+    5. 保存对话记录到数据库
+    6. 返回 AI 回复 + 需求画像 + 匹配结果
     """
     session_id = request.session_id
     messages = request.messages
 
-    # 统计用户发言轮次
+    # 统计用户发言轮次（提供给 LLM 作为上下文，不再作为强制收束条件）
     user_round = sum(1 for m in messages if m.role == "user")
 
     # ── Step 1: 提取需求画像 ──────────────────────
@@ -120,13 +125,10 @@ def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
     response = ChatResponse(
         session_id=session_id,
         assistant_message=assistant_message,
-        demand_profile=demand_profile if not is_matching_complete else None,
+        demand_profile=demand_profile,
         matches=matches,
         is_matching_complete=is_matching_complete,
     )
-
-    if is_matching_complete:
-        response.demand_profile = demand_profile
 
     return response
 
