@@ -89,6 +89,9 @@ def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
         demand_profile = extraction.extract_demand_profile(messages, user_round)
         demand_profile.session_id = session_id
 
+        # 用代码兜底计算 is_complete，不依赖 LLM 是否正确设置
+        demand_profile.is_complete = bool(demand_profile.project_type)
+
         # ── Step 2: 匹配（需求识别出来立刻匹配）─────
         matches: list[OPCMatch] = []
         is_matching_complete = False
