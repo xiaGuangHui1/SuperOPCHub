@@ -89,12 +89,7 @@ def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
         demand_profile = extraction.extract_demand_profile(messages, user_round)
         demand_profile.session_id = session_id
 
-        # ── Step 2: 生成 AI 回复 ──────────────────────
-        assistant_message = extraction.generate_assistant_message(
-            messages, demand_profile, user_round
-        )
-
-        # ── Step 3: 匹配（需求识别出来就匹配，不设轮次门槛）──
+        # ── Step 2: 匹配（需求识别出来立刻匹配）─────
         matches: list[OPCMatch] = []
         is_matching_complete = False
         if demand_profile.is_complete:
@@ -131,10 +126,11 @@ def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
                     pass
             except Exception as match_err:
                 logger.error(f"[/api/chat] 匹配失败: {match_err}\n{traceback.format_exc()}")
-                assistant_message += (
-                    "\n\n（匹配引擎暂时繁忙，已记录您的需求，"
-                    f"稍后为您推荐匹配人选。{type(match_err).__name__}）"
-                )
+
+        # ── Step 3: 生成 AI 回复（传入匹配结果）──────
+        assistant_message = extraction.generate_assistant_message(
+            messages, demand_profile, user_round, matches if is_matching_complete else None
+        )
 
         # ── Step 4: 保存对话记录 ──────────────────────
         try:

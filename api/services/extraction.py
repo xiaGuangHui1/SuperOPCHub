@@ -1,7 +1,7 @@
 """需求提取服务 —— 通过 Instructor 从对话中提取结构化需求画像"""
 
-from typing import List
-from models.schemas import DemandProfileOut, ChatMessage
+from typing import List, Optional
+from models.schemas import DemandProfileOut, ChatMessage, OPCMatch
 from services.llm import chat_completion, structured_completion
 from services import prompting
 
@@ -42,17 +42,16 @@ def generate_assistant_message(
     messages: List[ChatMessage],
     demand_profile: DemandProfileOut,
     user_round: int = 1,
+    matches: Optional[List[OPCMatch]] = None,
 ) -> str:
     """
     生成 AI 助手的回复消息。
 
-    - 需求不完整 → 追问缺失信息（最多 3 轮）
-    - 第 3 轮 → 总结收束，引导匹配
-    - 需求完整 → 告知用户即将开始匹配
+    如果传入了匹配结果，AI 会直接引用匹配到的 OPC 进行推荐。
     """
     system_prompt = prompting.CONVERSATION_SYSTEM
     user_prompt = prompting.build_conversation_prompt(
-        messages, demand_profile, user_round
+        messages, demand_profile, user_round, matches
     )
 
     return chat_completion(
