@@ -20,11 +20,11 @@ export function DemandProfile({ isVisible, data }: DemandProfileProps) {
 
   const formatBudget = () => {
     if (!data) return "待定";
-    if (data.budget_min && data.budget_max) {
+    if (data.budget_min !== null && data.budget_min !== undefined && data.budget_max !== null && data.budget_max !== undefined) {
       return `¥${data.budget_min.toLocaleString()} - ¥${data.budget_max.toLocaleString()}`;
     }
-    if (data.budget_min) return `¥${data.budget_min.toLocaleString()} 起`;
-    if (data.budget_max) return `不超过 ¥${data.budget_max.toLocaleString()}`;
+    if (data.budget_min !== null && data.budget_min !== undefined) return `¥${data.budget_min.toLocaleString()} 起`;
+    if (data.budget_max !== null && data.budget_max !== undefined) return `不超过 ¥${data.budget_max.toLocaleString()}`;
     return "待定";
   };
 
