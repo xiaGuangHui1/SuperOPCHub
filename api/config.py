@@ -24,7 +24,7 @@ class Config:
 
     # 匹配参数
     MATCH_TOP_K = int(os.getenv("MATCH_TOP_K", "8"))
-    MATCH_MIN_SCORE = float(os.getenv("MATCH_MIN_SCORE", "40.0"))
+    MATCH_MIN_SCORE = float(os.getenv("MATCH_MIN_SCORE", "0.0"))
 
 
 config = Config()
