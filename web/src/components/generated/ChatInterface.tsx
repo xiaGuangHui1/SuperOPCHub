@@ -118,24 +118,30 @@ export function ChatInterface({
             <div className="h-full flex items-center justify-center text-gray-400">
               <div className="text-center space-y-3">
                 <p className="text-[16px] sm:text-[18px]">嗨，告诉我您遇到的困难或项目想法，让我们一起探索...</p>
-                <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                <div className="flex flex-wrap gap-2 sm:gap-3 justify-center max-w-lg">
                   <div
-                    className="px-4 py-2.5 border-2 border-blue-200 rounded-xl text-blue-600 font-medium cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:shadow-md transition-all duration-200 text-center min-w-[140px] text-sm"
-                    onClick={() => handleSuggestionClick("帮我找一个UI设计师")}
+                    className="px-4 py-2.5 border-2 border-blue-200 rounded-xl text-blue-600 font-medium cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:shadow-md transition-all duration-200 text-sm whitespace-nowrap"
+                    onClick={() => handleSuggestionClick("帮我搭建一个AI智能客服系统")}
                   >
-                    帮我找一个UI设计师
+                    🤖 帮我搭建AI智能客服
                   </div>
                   <div
-                    className="px-4 py-2.5 border-2 border-blue-200 rounded-xl textblue-600 text-sm font-medium cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:shadow-md transition-all duration-200 text-center min-w-[140px]"
-                    onClick={() => handleSuggestionClick("我想做一个哄我上班的APP")}
+                    className="px-4 py-2.5 border-2 border-green-200 rounded-xl text-green-600 font-medium cursor-pointer hover:bg-green-50 hover:border-green-300 hover:shadow-md transition-all duration-200 text-sm whitespace-nowrap"
+                    onClick={() => handleSuggestionClick("帮我做一个跨境电商独立站")}
                   >
-                    我想做一个哄我上班的APP
+                    🌍 帮我做跨境电商独立站
                   </div>
                   <div
-                    className="px-4 py-2.5 border-2 border-blue-200 rounded-xl text-blue-600 text-sm font-medium cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:shadow-md transition-all duration-200 text-center min-w-[140px]"
-                    onClick={() => handleSuggestionClick("想给我家做一个全屋家电智能系统")}
+                    className="px-4 py-2.5 border-2 border-purple-200 rounded-xl text-purple-600 font-medium cursor-pointer hover:bg-purple-50 hover:border-purple-300 hover:shadow-md transition-all duration-200 text-sm whitespace-nowrap"
+                    onClick={() => handleSuggestionClick("帮我开发一个自动化运营数据看板")}
                   >
-                    我想做一个智能电控系统
+                    📊 自动化运营数据看板
+                  </div>
+                  <div
+                    className="px-4 py-2.5 border-2 border-orange-200 rounded-xl text-orange-600 font-medium cursor-pointer hover:bg-orange-50 hover:border-orange-300 hover:shadow-md transition-all duration-200 text-sm whitespace-nowrap"
+                    onClick={() => handleSuggestionClick("帮我做一个个人品牌全案设计")}
+                  >
+                    🎨 个人品牌全案设计
                   </div>
                 </div>
               </div>
@@ -188,7 +194,7 @@ export function ChatInterface({
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="告诉我您的项目想法..."
+                placeholder="告诉我您遇到的困难或项目想法..."
                 className="flex-1 px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <Button
