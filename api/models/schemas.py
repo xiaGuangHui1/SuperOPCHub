@@ -29,10 +29,13 @@ class MatchRequest(BaseModel):
 class DemandProfileOut(BaseModel):
     session_id: str
     project_type: str = ""
+    project_scope: str = Field(default="", description="项目规模/范围，如'两个页面''完整小程序'等")
     budget_min: Optional[float] = None
     budget_max: Optional[float] = None
     timeline: str = ""
     skills_required: List[str] = Field(default_factory=list)
+    target_users: str = Field(default="", description="目标用户群体")
+    constraints: str = Field(default="", description="特殊约束或要求")
     description: str = ""
     is_complete: bool = False
     missing_fields: List[str] = Field(default_factory=list)

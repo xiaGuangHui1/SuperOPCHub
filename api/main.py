@@ -101,10 +101,13 @@ def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
                         "session_id": session_id,
                         "user_id": user_id,
                         "project_type": demand_profile.project_type,
+                        "project_scope": demand_profile.project_scope,
                         "budget_min": demand_profile.budget_min,
                         "budget_max": demand_profile.budget_max,
                         "timeline": demand_profile.timeline,
                         "skills_required": ",".join(demand_profile.skills_required),
+                        "target_users": demand_profile.target_users,
+                        "constraints": demand_profile.constraints,
                         "description": demand_profile.description,
                         "status": "active",
                     })
