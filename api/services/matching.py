@@ -40,9 +40,9 @@ def match_opc_profiles(
         results = []
         for p in opc_profiles:
             opc_text = " ".join([
-                p.get("role", ""),
-                p.get("description", ""),
-                p.get("skills", ""),
+                p.get("role") or "",
+                p.get("description") or "",
+                p.get("skills") or "",
             ])
             score = _keyword_match_score(search_text, opc_text)
             if p.get("is_available", True):
@@ -54,9 +54,9 @@ def match_opc_profiles(
 
     matches: List[OPCMatch] = []
     for profile, score in filtered:
-        skills = _parse_skills(profile.get("skills", ""))
-        role = profile.get("role", "")
-        name = profile.get("name", "")
+        skills = _parse_skills(profile.get("skills") or "")
+        role = profile.get("role") or ""
+        name = profile.get("name") or ""
 
         reasons = []
         if score >= 60:
