@@ -25,7 +25,7 @@ export function ChatInterface({
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
-  const [matchingComplete, setMatchingComplete] = useState(false);
+  const [hasMatched, setHasMatched] = useState(false);
   const sessionIdRef = useRef<string>("");
 
   /** 生成 session ID */
@@ -37,7 +37,7 @@ export function ChatInterface({
   };
 
   const handleSend = async () => {
-    if (!inputValue.trim() || matchingComplete) return;
+    if (!inputValue.trim()) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -81,7 +81,7 @@ export function ChatInterface({
 
       // 匹配完成，展示结果
       if (response.is_matching_complete && response.matches.length > 0) {
-        setMatchingComplete(true);
+        setHasMatched(true);
         onMatchResults?.(response.matches);
       }
     } catch (error) {
@@ -117,49 +117,49 @@ export function ChatInterface({
           {messages.length === 0 ?
             <div className="h-full flex items-center justify-center text-gray-400">
               <div className="text-center space-y-3">
-                <p className="text-[16px] sm:text-[18px]">嗨，告诉我您遇到的困难或项目想法，让我们一起探索...</p>
+                <p className="text-[16px] sm:text-[18px]">嗨，说说你想做什么，我帮你对接合适的 OPC——</p>
                 <div className="flex flex-wrap gap-2 justify-center max-w-2xl">
                   <div
                     className="px-4 py-2.5 border-2 border-blue-200 rounded-xl text-blue-600 font-medium cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:shadow-md transition-all duration-200 text-center min-w-[140px] text-sm"
-                    onClick={() => handleSuggestionClick("帮我搭建一个AI智能客服系统")}
+                    onClick={() => handleSuggestionClick("想用AI接住所有客户咨询")}
                   >
-                    帮我搭建AI智能客服
+                    想用AI接住所有客户咨询
                   </div>
                   <div
                     className="px-4 py-2.5 border-2 border-blue-200 rounded-xl text-blue-600 font-medium cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:shadow-md transition-all duration-200 text-center min-w-[140px] text-sm"
-                    onClick={() => handleSuggestionClick("帮我做一个跨境电商独立站")}
+                    onClick={() => handleSuggestionClick("想把产品卖到海外去")}
                   >
-                    帮我做跨境电商独立站
+                    想把产品卖到海外去
                   </div>
                   <div
                     className="px-4 py-2.5 border-2 border-blue-200 rounded-xl text-blue-600 font-medium cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:shadow-md transition-all duration-200 text-center min-w-[140px] text-sm"
-                    onClick={() => handleSuggestionClick("帮我开发一个自动化运营数据看板")}
+                    onClick={() => handleSuggestionClick("想让经营数据一目了然")}
                   >
-                    自动化运营数据看板
+                    想让经营数据一目了然
                   </div>
                   <div
                     className="px-4 py-2.5 border-2 border-blue-200 rounded-xl text-blue-600 font-medium cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:shadow-md transition-all duration-200 text-center min-w-[140px] text-sm"
-                    onClick={() => handleSuggestionClick("帮我做一个个人品牌全案设计")}
+                    onClick={() => handleSuggestionClick("想让人一眼记住我的品牌")}
                   >
-                    个人品牌全案设计
+                    想让人一眼记住我的品牌
                   </div>
                   <div
                     className="px-4 py-2.5 border-2 border-blue-200 rounded-xl text-blue-600 font-medium cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:shadow-md transition-all duration-200 text-center min-w-[140px] text-sm"
-                    onClick={() => handleSuggestionClick("帮我做一个自动化财务对账系统")}
+                    onClick={() => handleSuggestionClick("想让财务对账自动完成")}
                   >
-                    自动化财务对账系统
+                    想让财务对账自动完成
                   </div>
                   <div
                     className="px-4 py-2.5 border-2 border-blue-200 rounded-xl text-blue-600 font-medium cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:shadow-md transition-all duration-200 text-center min-w-[140px] text-sm"
-                    onClick={() => handleSuggestionClick("帮我开发一个小程序商城")}
+                    onClick={() => handleSuggestionClick("想在微信里把生意做起来")}
                   >
-                    帮我开发小程序商城
+                    想在微信里把生意做起来
                   </div>
                   <div
                     className="px-4 py-2.5 border-2 border-blue-200 rounded-xl text-blue-600 font-medium cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:shadow-md transition-all duration-200 text-center min-w-[140px] text-sm"
-                    onClick={() => handleSuggestionClick("帮我搭建短视频内容矩阵")}
+                    onClick={() => handleSuggestionClick("想用短视频吸引精准客户")}
                   >
-                    短视频内容矩阵搭建
+                    想用短视频吸引精准客户
                   </div>
                 </div>
               </div>
@@ -205,29 +205,23 @@ export function ChatInterface({
         </div>
 
         <div className="border-t border-gray-100 p-3 sm:p-4 bg-gray-50">
-          {!matchingComplete ? (
-            <div className="flex gap-2 sm:gap-3">
-              <input
-                type="text"
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="告诉我您遇到的困难或项目想法..."
-                className="flex-1 px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-              <Button
-                onClick={handleSend}
-                disabled={!inputValue.trim()}
-                className="bg-blue-500 hover:bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex-shrink-0"
-              >
-                <FaPaperPlane className="w-3 h-3 sm:w-4 sm:h-4" />
-              </Button>
-            </div>
-          ) : (
-            <p className="text-center text-sm text-gray-500">
-              匹配完成！请查看下方结果
-            </p>
-          )}
+          <div className="flex gap-2 sm:gap-3">
+            <input
+              type="text"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder={hasMatched ? "想调整需求？告诉我……" : "说说你想找什么样的 OPC……"}
+              className="flex-1 px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+            <Button
+              onClick={handleSend}
+              disabled={!inputValue.trim()}
+              className="bg-blue-500 hover:bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl transition-all duration-200 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex-shrink-0"
+            >
+              <FaPaperPlane className="w-3 h-3 sm:w-4 sm:h-4" />
+            </Button>
+          </div>
         </div>
       </div>
     </div>

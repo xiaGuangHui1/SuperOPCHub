@@ -21,6 +21,9 @@ export interface DemandData {
   timeline: string;
   skills_required: string[];
   description: string;
+  collaboration_mode: string;
+  industry: string;
+  service_expectations: string;
   is_complete: boolean;
   missing_fields: string[];
 }

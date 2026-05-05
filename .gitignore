@@ -26,5 +26,5 @@ web/dist/
 .DS_Store
 Thumbs.db
 
-# Docker
-*.log
+# 开发记录
+devlog/

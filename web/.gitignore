@@ -42,3 +42,4 @@ dist-ssr
 *.jar
 *.war
 *.ear
+.vercel

@@ -46,9 +46,9 @@ export default function Home() {
   return (
     <>
       <PageMeta
-        title="Super OPC Hub - AI 驱动的需求匹配平台"
-        description="通过 AI 对话帮助甲方和乙方探索创意、明确需求，并智能匹配适合的 OPC 画像"
-        keywords={["OPC", "需求匹配", "AI 对话", "设计师", "开发者"]}
+        title="Super OPC Hub - AI 驱动的合作对接平台"
+        description="通过 AI 对话探索想法、明确需求，精准对接适合的 OPC 一人公司"
+        keywords={["OPC", "合作对接", "AI 对话", "一人公司", "独立开发者", "设计师"]}
       />
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white pb-20">
         <Header />
@@ -58,7 +58,7 @@ export default function Home() {
               Super OPC Hub
             </h2>
             <p className="text-gray-500 text-base sm:text-lg lg:text-xl max-w-2xl mx-auto font-medium px-2">
-              通过 AI 对话探索创意、明确需求，智能匹配最适合的专业人士
+              通过 AI 对话探索想法、明确需求，精准对接合适的 OPC 一人公司
             </p>
           </div>
 

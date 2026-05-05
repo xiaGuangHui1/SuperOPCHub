@@ -17,6 +17,26 @@ interface OPCMatchCardProps {
   isVisible: boolean;
 }
 
+/** 提取姓名首字作为头像兜底 */
+function getInitials(name: string): string {
+  if (!name) return "?";
+  return name.slice(0, 1);
+}
+
+/** 根据名字生成稳定的背景色 */
+const AVATAR_COLORS = [
+  "bg-blue-500", "bg-green-500", "bg-purple-500", "bg-orange-500",
+  "bg-pink-500", "bg-teal-500", "bg-indigo-500", "bg-red-500",
+];
+
+function getAvatarColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+}
+
 export function OPCMatchCard({ profiles, isVisible }: OPCMatchCardProps) {
   if (!isVisible) return null;
 
@@ -46,11 +66,19 @@ export function OPCMatchCard({ profiles, isVisible }: OPCMatchCardProps) {
             className="bg-white rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6 hover:shadow-xl transition-shadow duration-300"
           >
             <div className="flex items-center gap-3 sm:gap-4 mb-3 sm:mb-4">
-              <img
-                src={profile.avatar}
-                alt={profile.name}
-                className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-blue-100"
-              />
+              {profile.avatar ? (
+                <img
+                  src={profile.avatar}
+                  alt={profile.name}
+                  className="w-12 h-12 sm:w-16 sm:h-16 rounded-full object-cover border-2 border-blue-100"
+                />
+              ) : (
+                <div
+                  className={`w-12 h-12 sm:w-16 sm:h-16 rounded-full ${getAvatarColor(profile.name)} flex items-center justify-center text-white font-bold text-lg sm:text-xl flex-shrink-0`}
+                >
+                  {getInitials(profile.name)}
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <h4 className="font-bold text-gray-900 text-base sm:text-lg truncate">{profile.name}</h4>
                 <p className="text-xs sm:text-sm text-gray-500">{profile.role}</p>
