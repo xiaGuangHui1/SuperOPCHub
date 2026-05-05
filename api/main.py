@@ -239,7 +239,11 @@ def debug_match():
 
     try:
         from config import config
+        key_masked = (config.SUPABASE_SERVICE_KEY[:10] + "..." + config.SUPABASE_SERVICE_KEY[-4:]) if config.SUPABASE_SERVICE_KEY else "(empty)"
         result["config"] = {
+            "SUPABASE_URL": config.SUPABASE_URL,
+            "SUPABASE_KEY_masked": key_masked,
+            "SUPABASE_KEY_len": len(config.SUPABASE_SERVICE_KEY),
             "MATCH_MIN_SCORE": config.MATCH_MIN_SCORE,
             "MATCH_TOP_K": config.MATCH_TOP_K,
         }
