@@ -85,30 +85,37 @@ def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
         matches: list[OPCMatch] = []
         is_matching_complete = False
         if demand_profile.is_complete:
-            opc_profiles = fetch_opc_profiles()
-            matches = match_opc_profiles(
-                demand_profile,
-                opc_profiles,
-                top_k=config.MATCH_TOP_K,
-                min_score=config.MATCH_MIN_SCORE,
-            )
-            is_matching_complete = True
-
-            # 保存需求画像
             try:
-                save_demand_profile({
-                    "session_id": session_id,
-                    "user_id": user_id,
-                    "project_type": demand_profile.project_type,
-                    "budget_min": demand_profile.budget_min,
-                    "budget_max": demand_profile.budget_max,
-                    "timeline": demand_profile.timeline,
-                    "skills_required": ",".join(demand_profile.skills_required),
-                    "description": demand_profile.description,
-                    "status": "active",
-                })
-            except Exception:
-                pass
+                opc_profiles = fetch_opc_profiles()
+                matches = match_opc_profiles(
+                    demand_profile,
+                    opc_profiles,
+                    top_k=config.MATCH_TOP_K,
+                    min_score=config.MATCH_MIN_SCORE,
+                )
+                is_matching_complete = True
+
+                # 保存需求画像
+                try:
+                    save_demand_profile({
+                        "session_id": session_id,
+                        "user_id": user_id,
+                        "project_type": demand_profile.project_type,
+                        "budget_min": demand_profile.budget_min,
+                        "budget_max": demand_profile.budget_max,
+                        "timeline": demand_profile.timeline,
+                        "skills_required": ",".join(demand_profile.skills_required),
+                        "description": demand_profile.description,
+                        "status": "active",
+                    })
+                except Exception:
+                    pass
+            except Exception as match_err:
+                logger.error(f"[/api/chat] 匹配失败: {match_err}\n{traceback.format_exc()}")
+                assistant_message += (
+                    "\n\n（匹配引擎暂时繁忙，已记录您的需求，"
+                    f"稍后为您推荐匹配人选。{type(match_err).__name__}）"
+                )
 
         # ── Step 4: 保存对话记录 ──────────────────────
         try:
@@ -141,7 +148,10 @@ def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
 
         return ChatResponse(
             session_id=session_id,
-            assistant_message="抱歉，处理您的请求时遇到了一些问题，请稍后重试或换个方式描述您的需求。",
+            assistant_message=(
+                "抱歉，处理您的请求时遇到了一些问题"
+                f"（{type(e).__name__}），请稍后重试或换个方式描述您的需求。"
+            ),
             demand_profile=DemandProfileOut(session_id=session_id),
             matches=[],
             is_matching_complete=False,
