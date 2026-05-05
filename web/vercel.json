@@ -8,8 +8,8 @@
     { "src": "/(.*)", "dest": "/index.html" }
   ],
   "env": {
-    "VITE_SUPABASE_URL": "@supabase_url",
-    "VITE_SUPABASE_ANON_KEY": "@supabase_anon_key",
-    "VITE_API_URL": "@api_url"
+    "VITE_SUPABASE_URL": "https://gjqexwfnbfnnqipyfwqe.supabase.co",
+    "VITE_SUPABASE_ANON_KEY": "sb_publishable_1Yy0Giea_B-1Ylx3smtMpg_ij0jDMMd",
+    "VITE_API_URL": "https://super-opc-api.vercel.app"
   }
 }
