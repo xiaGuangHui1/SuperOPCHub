@@ -85,12 +85,23 @@ def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
         # 统计用户发言轮次（提供给 LLM 作为上下文，不再作为强制收束条件）
         user_round = sum(1 for m in messages if m.role == "user")
 
+        # 记录最后一条用户消息，便于排查
+        last_user_msg = messages[-1].content if messages and messages[-1].role == "user" else "(空)"
+        logger.info(f"[/api/chat] session={session_id} round={user_round} msg={last_user_msg[:80]}")
+
         # ── Step 1: 提取需求画像 ──────────────────────
         demand_profile = extraction.extract_demand_profile(messages, user_round)
         demand_profile.session_id = session_id
 
         # 用代码兜底计算 is_complete，不依赖 LLM 是否正确设置
         demand_profile.is_complete = bool(demand_profile.project_type)
+        logger.info(
+            f"[/api/chat] 提取结果: project_type={demand_profile.project_type!r} "
+            f"is_complete={demand_profile.is_complete} "
+            f"industry={demand_profile.industry!r} "
+            f"skills_required={demand_profile.skills_required} "
+            f"llm_is_complete={bool(demand_profile.project_type)}"
+        )
 
         # ── Step 2: 匹配（需求识别出来立刻匹配）─────
         matches: list[OPCMatch] = []
@@ -98,6 +109,7 @@ def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
         if demand_profile.is_complete:
             try:
                 opc_profiles = fetch_opc_profiles()
+                logger.info(f"[/api/chat] 获取到 {len(opc_profiles)} 个 OPC 画像")
                 matches = match_opc_profiles(
                     demand_profile,
                     opc_profiles,
@@ -105,6 +117,10 @@ def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
                     min_score=config.MATCH_MIN_SCORE,
                 )
                 is_matching_complete = True
+                logger.info(
+                    f"[/api/chat] 匹配结果: {len(matches)} 个匹配, "
+                    f"top_scores={[m.match_rate for m in matches[:3]]}"
+                )
 
                 # 保存需求画像
                 try:
@@ -133,6 +149,11 @@ def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
         # ── Step 3: 生成 AI 回复（传入匹配结果）──────
         assistant_message = extraction.generate_assistant_message(
             messages, demand_profile, user_round, matches if is_matching_complete else None
+        )
+        logger.info(
+            f"[/api/chat] AI 回复 (前80字): {assistant_message[:80]}..."
+            if len(assistant_message) > 80
+            else f"[/api/chat] AI 回复: {assistant_message}"
         )
 
         # ── Step 4: 保存对话记录 ──────────────────────

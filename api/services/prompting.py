@@ -10,7 +10,7 @@ from models.schemas import ChatMessage, DemandProfileOut, OPCMatch
 EXTRACTION_SYSTEM = """从用户与顾问的对话中提取需求画像。只提取明确表达的或可合理推理的信息，不强编。
 
 【提取字段】
-- project_type: 项目类别（如"网站建设""AI客服""小程序开发""品牌设计""数据看板""跨境电商""短视频"）
+- project_type: 项目类别。必须从下列类别中选一个最匹配的：AI客服、跨境电商、数据看板、品牌设计、财务系统、小程序开发、短视频。若用户描述与上述均不匹配，可填"网站建设"
 - description: 一句话概括用户想做什么
 - industry: 行业场景（如"电商""餐饮""教育""SaaS""零售"），可从对话推理
 - skills_required: 需要的技能（简单写 1-2 个即可，如["网站开发""React"]）
