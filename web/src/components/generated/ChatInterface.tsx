@@ -118,48 +118,48 @@ export function ChatInterface({
             <div className="h-full flex items-center justify-center text-gray-400">
               <div className="text-center space-y-3">
                 <p className="text-[16px] sm:text-[18px]">嗨，告诉我您遇到的困难或项目想法，让我们一起探索...</p>
-                <div className="flex flex-wrap gap-2 sm:gap-3 justify-center max-w-2xl">
+                <div className="flex flex-wrap gap-2 justify-center max-w-2xl">
                   <div
-                    className="px-4 py-2.5 border-2 border-blue-200 rounded-xl text-blue-600 font-medium cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:shadow-md transition-all duration-200 text-sm whitespace-nowrap"
+                    className="px-4 py-2.5 border-2 border-blue-200 rounded-xl text-blue-600 font-medium cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:shadow-md transition-all duration-200 text-center min-w-[140px] text-sm"
                     onClick={() => handleSuggestionClick("帮我搭建一个AI智能客服系统")}
                   >
-                    🤖 帮我搭建AI智能客服
+                    帮我搭建AI智能客服
                   </div>
                   <div
-                    className="px-4 py-2.5 border-2 border-green-200 rounded-xl text-green-600 font-medium cursor-pointer hover:bg-green-50 hover:border-green-300 hover:shadow-md transition-all duration-200 text-sm whitespace-nowrap"
+                    className="px-4 py-2.5 border-2 border-blue-200 rounded-xl text-blue-600 font-medium cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:shadow-md transition-all duration-200 text-center min-w-[140px] text-sm"
                     onClick={() => handleSuggestionClick("帮我做一个跨境电商独立站")}
                   >
-                    🌍 帮我做跨境电商独立站
+                    帮我做跨境电商独立站
                   </div>
                   <div
-                    className="px-4 py-2.5 border-2 border-purple-200 rounded-xl text-purple-600 font-medium cursor-pointer hover:bg-purple-50 hover:border-purple-300 hover:shadow-md transition-all duration-200 text-sm whitespace-nowrap"
+                    className="px-4 py-2.5 border-2 border-blue-200 rounded-xl text-blue-600 font-medium cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:shadow-md transition-all duration-200 text-center min-w-[140px] text-sm"
                     onClick={() => handleSuggestionClick("帮我开发一个自动化运营数据看板")}
                   >
-                    📊 自动化运营数据看板
+                    自动化运营数据看板
                   </div>
                   <div
-                    className="px-4 py-2.5 border-2 border-orange-200 rounded-xl text-orange-600 font-medium cursor-pointer hover:bg-orange-50 hover:border-orange-300 hover:shadow-md transition-all duration-200 text-sm whitespace-nowrap"
+                    className="px-4 py-2.5 border-2 border-blue-200 rounded-xl text-blue-600 font-medium cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:shadow-md transition-all duration-200 text-center min-w-[140px] text-sm"
                     onClick={() => handleSuggestionClick("帮我做一个个人品牌全案设计")}
                   >
-                    🎨 个人品牌全案设计
+                    个人品牌全案设计
                   </div>
                   <div
-                    className="px-4 py-2.5 border-2 border-pink-200 rounded-xl text-pink-600 font-medium cursor-pointer hover:bg-pink-50 hover:border-pink-300 hover:shadow-md transition-all duration-200 text-sm whitespace-nowrap"
+                    className="px-4 py-2.5 border-2 border-blue-200 rounded-xl text-blue-600 font-medium cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:shadow-md transition-all duration-200 text-center min-w-[140px] text-sm"
                     onClick={() => handleSuggestionClick("帮我做一个自动化财务对账系统")}
                   >
-                    💰 自动化财务对账系统
+                    自动化财务对账系统
                   </div>
                   <div
-                    className="px-4 py-2.5 border-2 border-teal-200 rounded-xl text-teal-600 font-medium cursor-pointer hover:bg-teal-50 hover:border-teal-300 hover:shadow-md transition-all duration-200 text-sm whitespace-nowrap"
+                    className="px-4 py-2.5 border-2 border-blue-200 rounded-xl text-blue-600 font-medium cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:shadow-md transition-all duration-200 text-center min-w-[140px] text-sm"
                     onClick={() => handleSuggestionClick("帮我开发一个小程序商城")}
                   >
-                    📱 帮我开发小程序商城
+                    帮我开发小程序商城
                   </div>
                   <div
-                    className="px-4 py-2.5 border-2 border-indigo-200 rounded-xl text-indigo-600 font-medium cursor-pointer hover:bg-indigo-50 hover:border-indigo-300 hover:shadow-md transition-all duration-200 text-sm whitespace-nowrap"
+                    className="px-4 py-2.5 border-2 border-blue-200 rounded-xl text-blue-600 font-medium cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:shadow-md transition-all duration-200 text-center min-w-[140px] text-sm"
                     onClick={() => handleSuggestionClick("帮我搭建短视频内容矩阵")}
                   >
-                    🎬 短视频内容矩阵搭建
+                    短视频内容矩阵搭建
                   </div>
                 </div>
               </div>
