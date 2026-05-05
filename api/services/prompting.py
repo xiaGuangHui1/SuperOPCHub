@@ -1,7 +1,7 @@
 """Prompt 模板 —— 集中管理所有 LLM 提示词"""
 
-from typing import List
-from models.schemas import ChatMessage, DemandProfileOut
+from typing import List, Optional
+from models.schemas import ChatMessage, DemandProfileOut, OPCMatch
 
 # ═══════════════════════════════════════════════════════
 # 需求提取 System Prompt
@@ -73,50 +73,53 @@ def build_conversation_prompt(
     messages: List[ChatMessage],
     profile: DemandProfileOut,
     user_round: int,
+    matches: Optional[List[OPCMatch]] = None,
 ) -> str:
-    """构建对话引导 prompt，将需求画像呈现为结构化摘要而非裸 JSON"""
+    """构建对话引导 prompt，将需求画像和匹配结果呈现给 AI"""
 
     conversation = "\n".join(
-        f"{'甲方' if m.role == 'user' else '顾问'}: {m.content}" for m in messages
+        f"用户: {m.content}" if m.role == "user" else f"顾问: {m.content}"
+        for m in messages
     )
 
-    # 将需求画像格式化为可读摘要
+    # 需求摘要
     demand_summary_parts = []
     if profile.project_type:
-        demand_summary_parts.append(f"- 项目类型：{profile.project_type}")
-    if profile.project_scope:
-        demand_summary_parts.append(f"- 项目范围：{profile.project_scope}")
+        demand_summary_parts.append(f"项目类型：{profile.project_type}")
     if profile.description:
-        demand_summary_parts.append(f"- 项目描述：{profile.description}")
-    if profile.skills_required:
-        demand_summary_parts.append(f"- 需要技能：{'、'.join(profile.skills_required)}")
-    if profile.timeline:
-        demand_summary_parts.append(f"- 时间：{profile.timeline}")
-    if profile.target_users:
-        demand_summary_parts.append(f"- 给谁用：{profile.target_users}")
-    if profile.constraints:
-        demand_summary_parts.append(f"- 特殊要求：{profile.constraints}")
-    # 「找 OPC」维度
-    if profile.collaboration_mode:
-        demand_summary_parts.append(f"- 协作方式：{profile.collaboration_mode}")
+        demand_summary_parts.append(f"描述：{profile.description}")
     if profile.industry:
-        demand_summary_parts.append(f"- 行业：{profile.industry}")
-    if profile.service_expectations:
-        demand_summary_parts.append(f"- 对 OPC 的期望：{profile.service_expectations}")
+        demand_summary_parts.append(f"行业：{profile.industry}")
+    if profile.skills_required:
+        demand_summary_parts.append(f"技能：{'、'.join(profile.skills_required)}")
 
     demand_block = "\n".join(demand_summary_parts) if demand_summary_parts else "（还没有提取到信息）"
 
-    # 不管什么阶段，不要提问，直接推荐
-    if profile.is_complete:
-        stage_hint = '\n\n【当前状态】直接推荐。一句话概括用户需求，然后说推荐哪些 OPC，最后说"正在帮你匹配——"。不要问任何问题。'
+    # 匹配结果
+    match_block = ""
+    if matches and len(matches) > 0:
+        match_lines = []
+        for m in matches[:5]:
+            skills_str = "、".join(m.skills[:3]) if m.skills else ""
+            match_lines.append(f"  - {m.name}（{m.role}，匹配度{m.match_rate}%）：{m.description or ''}，技能：{skills_str}")
+        match_block = "\n".join(match_lines)
     else:
-        stage_hint = '\n\n【当前状态】根据已有信息直接推荐。一句话概括，推荐 OPC，说"正在帮你匹配——"。不要问问题。'
+        match_block = "（暂无匹配结果）"
+
+    # 不管什么阶段，不要提问，直接推荐
+    if matches and len(matches) > 0:
+        stage_hint = '\n\n【任务】用户说了需求，系统已匹配到 OPC。你直接推荐他们，格式：先一句话概括"好的，你想做{概括}"，然后介绍匹配到的 OPC，最后说"正在帮你匹配——"。不要问任何问题，不要确认。'
+    else:
+        stage_hint = '\n\n【任务】根据已有信息推荐。一句话概括用户需求，告诉用户"正在帮你匹配合适的 OPC"。不要问任何问题。'
 
     return f"""对话记录：
 {conversation}
 
-已提取的需求信息：
+已识别需求：
 {demand_block}
+
+已匹配 OPC：
+{match_block}
 {stage_hint}"""
 
 
