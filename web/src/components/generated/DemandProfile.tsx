@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { FaBriefcase, FaMoneyBillWave, FaClock, FaTools } from "react-icons/fa";
+import { FaBriefcase, FaMoneyBillWave, FaClock, FaTools, FaUsers, FaUserCheck, FaIndustry } from "react-icons/fa";
 
 export interface DemandProfileData {
   project_type: string;
@@ -8,6 +8,9 @@ export interface DemandProfileData {
   timeline: string;
   skills_required: string[];
   description: string;
+  collaboration_mode: string;
+  industry: string;
+  service_expectations: string;
 }
 
 interface DemandProfileProps {
@@ -18,15 +21,7 @@ interface DemandProfileProps {
 export function DemandProfile({ isVisible, data }: DemandProfileProps) {
   if (!isVisible) return null;
 
-  const formatBudget = () => {
-    if (!data) return "待定";
-    if (data.budget_min !== null && data.budget_min !== undefined && data.budget_max !== null && data.budget_max !== undefined) {
-      return `¥${data.budget_min.toLocaleString()} - ¥${data.budget_max.toLocaleString()}`;
-    }
-    if (data.budget_min !== null && data.budget_min !== undefined) return `¥${data.budget_min.toLocaleString()} 起`;
-    if (data.budget_max !== null && data.budget_max !== undefined) return `不超过 ¥${data.budget_max.toLocaleString()}`;
-    return "待定";
-  };
+  const hasBudget = data && (data.budget_min !== null || data.budget_max !== null);
 
   return (
     <motion.div
@@ -52,15 +47,23 @@ export function DemandProfile({ isVisible, data }: DemandProfileProps) {
             </div>
           </div>
 
-          <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-gray-50 rounded-xl">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-              <FaMoneyBillWave className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+          {hasBudget && (
+            <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-gray-50 rounded-xl">
+              <div className="w-9 h-9 sm:w-10 sm:h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <FaMoneyBillWave className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm text-gray-500 mb-1">预算范围</p>
+                <p className="font-medium text-sm sm:text-base text-gray-900">
+                  {data?.budget_min && data?.budget_max
+                    ? `¥${data.budget_min.toLocaleString()} - ¥${data.budget_max.toLocaleString()}`
+                    : data?.budget_min
+                    ? `¥${data.budget_min.toLocaleString()} 起`
+                    : `不超过 ¥${data.budget_max!.toLocaleString()}`}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="text-xs sm:text-sm text-gray-500 mb-1">预算范围</p>
-              <p className="font-medium text-sm sm:text-base text-gray-900">{formatBudget()}</p>
-            </div>
-          </div>
+          )}
 
           <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-gray-50 rounded-xl">
             <div className="w-9 h-9 sm:w-10 sm:h-10 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
@@ -92,6 +95,37 @@ export function DemandProfile({ isVisible, data }: DemandProfileProps) {
               ) : (
                 <p className="font-medium text-sm sm:text-base text-gray-400">待定</p>
               )}
+            </div>
+          </div>
+
+          {/* 「找人」维度 */}
+          <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-gray-50 rounded-xl border-l-2 border-blue-300">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <FaUsers className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-xs sm:text-sm text-gray-500 mb-1">协作方式</p>
+              <p className="font-medium text-sm sm:text-base text-gray-900">{data?.collaboration_mode || "待定"}</p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-gray-50 rounded-xl border-l-2 border-blue-300">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <FaIndustry className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-xs sm:text-sm text-gray-500 mb-1">行业领域</p>
+              <p className="font-medium text-sm sm:text-base text-gray-900">{data?.industry || "待定"}</p>
+            </div>
+          </div>
+
+          <div className="flex items-start gap-2 sm:gap-3 p-3 sm:p-4 bg-gray-50 rounded-xl border-l-2 border-blue-300">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <FaUserCheck className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-xs sm:text-sm text-gray-500 mb-1">服务期望</p>
+              <p className="font-medium text-sm sm:text-base text-gray-900">{data?.service_expectations || "待定"}</p>
             </div>
           </div>
         </div>

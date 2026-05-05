@@ -37,6 +37,10 @@ class DemandProfileOut(BaseModel):
     target_users: str = Field(default="", description="目标用户群体")
     constraints: str = Field(default="", description="特殊约束或要求")
     description: str = ""
+    # 「找人」维度新增字段
+    collaboration_mode: str = Field(default="", description="协作方式：远程/线下/混合")
+    industry: str = Field(default="", description="行业领域，如'电商''教育''金融'")
+    service_expectations: str = Field(default="", description="对 OPC 的核心期望，如'经验丰富''响应快''性价比高'")
     is_complete: bool = False
     missing_fields: List[str] = Field(default_factory=list)
 

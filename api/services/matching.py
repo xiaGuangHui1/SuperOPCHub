@@ -16,11 +16,12 @@ def match_opc_profiles(
     """
     多维度匹配 OPC 画像，返回排序后的 Top-K 匹配结果。
 
-    匹配维度与权重：
-    1. 技能语义匹配    (40%) — 嵌入向量余弦相似度
-    2. 角色适配度      (30%) — LLM 评估角色匹配
+    匹配维度与权重（「找人」导向）：
+    1. 技能语义匹配    (30%) — 嵌入向量余弦相似度
+    2. 角色适配度      (35%) — LLM 评估角色匹配，找对人的核心
     3. 描述相关性      (20%) — 嵌入向量余弦相似度
-    4. 可接单状态      (10%) — 在线加分
+    4. 行业经验        (10%) — 需求行业与 OPC 描述的语义匹配
+    5. 可接单状态       (5%) — 在线加分
 
     返回带评分理由的匹配列表。
     """
@@ -39,7 +40,10 @@ def match_opc_profiles(
     # ── 维度 3: 描述相关性 ────────────────────────
     desc_scores = _compute_description_scores(demand, opc_profiles)
 
-    # ── 维度 4: 可接单状态 ────────────────────────
+    # ── 维度 4: 行业经验 ──────────────────────────
+    industry_scores = _compute_industry_scores(demand, opc_profiles)
+
+    # ── 维度 5: 可接单状态 ────────────────────────
     availability_scores = [
         100.0 if p.get("is_available", True) else 30.0 for p in opc_profiles
     ]
@@ -48,10 +52,11 @@ def match_opc_profiles(
     results: List[tuple] = []
     for i, profile in enumerate(opc_profiles):
         weighted = (
-            skill_scores[i] * 0.40
-            + role_scores[i] * 0.30
+            skill_scores[i] * 0.30
+            + role_scores[i] * 0.35
             + desc_scores[i] * 0.20
-            + availability_scores[i] * 0.10
+            + industry_scores[i] * 0.10
+            + availability_scores[i] * 0.05
         )
         results.append((profile, round(weighted, 1)))
 
@@ -159,6 +164,26 @@ def _compute_description_scores(
     opc_embs = embeddings[1:]
 
     return [cosine_similarity(req_emb, emb) * 100.0 for emb in opc_embs]
+
+
+def _compute_industry_scores(
+    demand: DemandProfileOut,
+    opc_profiles: List[Dict[str, Any]],
+) -> List[float]:
+    """计算行业经验匹配度 [0, 100]。未指定行业时默认中等分。"""
+    if not demand.industry:
+        return [50.0] * len(opc_profiles)
+
+    # 用行业关键词与 OPC 的完整描述做语义匹配
+    texts = [demand.industry] + [
+        f"{p.get('role', '')} {p.get('description', '')} {p.get('skills', '')}"
+        for p in opc_profiles
+    ]
+    embeddings = embed_texts(texts)
+    ind_emb = embeddings[0]
+    opc_embs = embeddings[1:]
+
+    return [cosine_similarity(ind_emb, emb) * 100.0 for emb in opc_embs]
 
 
 def _parse_skills(skills_str: str) -> List[str]:

@@ -38,6 +38,19 @@ app = FastAPI(
     version="0.2.0",
 )
 
+
+def _user_confirmed_demand(messages: list) -> bool:
+    """检测用户最后一条消息是否确认需求"""
+    from models.schemas import ChatMessage
+    if not messages:
+        return False
+    last = messages[-1]
+    if last.role != "user":
+        return False
+    text = last.content.strip().lower()
+    confirm_words = ["确认", "没问题", "可以", "行", "好", "ok", "是的", "对的", "开始", "匹配"]
+    return any(w in text for w in confirm_words) and len(text) < 50
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -81,10 +94,10 @@ def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
             messages, demand_profile, user_round
         )
 
-        # ── Step 3: 匹配（仅当需求完整）─────────────────
+        # ── Step 3: 匹配（仅当需求完整且用户确认）─────────
         matches: list[OPCMatch] = []
         is_matching_complete = False
-        if demand_profile.is_complete:
+        if demand_profile.is_complete and _user_confirmed_demand(messages):
             try:
                 opc_profiles = fetch_opc_profiles()
                 matches = match_opc_profiles(
@@ -109,6 +122,9 @@ def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
                         "target_users": demand_profile.target_users,
                         "constraints": demand_profile.constraints,
                         "description": demand_profile.description,
+                        "collaboration_mode": demand_profile.collaboration_mode,
+                        "industry": demand_profile.industry,
+                        "service_expectations": demand_profile.service_expectations,
                         "status": "active",
                     })
                 except Exception:
