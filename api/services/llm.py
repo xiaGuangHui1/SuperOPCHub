@@ -89,7 +89,30 @@ def structured_completion(
 def get_embeddings(texts: List[str]) -> List[List[float]]:
     """
     获取文本嵌入向量（批量）
+
+    自动过滤空字符串 —— SiliconFlow 等 API 不接受空输入。
     """
     client = get_embedding_client()
-    resp = client.embeddings.create(model=config.EMBEDDING_MODEL, input=texts)
-    return [item.embedding for item in resp.data]
+
+    # 过滤空字符串：API 不接受空输入
+    non_empty = [t for t in texts if t and t.strip()]
+    if non_empty:
+        resp = client.embeddings.create(model=config.EMBEDDING_MODEL, input=non_empty)
+        embeddings_map = {}
+        for text, item in zip(non_empty, resp.data):
+            embeddings_map[text] = item.embedding
+    else:
+        embeddings_map = {}
+
+    # 保持输出顺序与输入一致，空字符串返回零向量
+    zero_vec = None
+    results = []
+    for t in texts:
+        if t in embeddings_map:
+            results.append(embeddings_map[t])
+        else:
+            if zero_vec is None:
+                zero_vec = [0.0] * 1024
+            results.append(zero_vec)
+
+    return results

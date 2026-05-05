@@ -19,13 +19,16 @@ def cosine_similarity(a: List[float], b: List[float]) -> float:
 
 
 def embed_texts(texts: List[str]) -> List[List[float]]:
-    """获取文本嵌入向量（自动缓存）"""
+    """获取文本嵌入向量（自动缓存）。空字符串返回零向量。"""
     uncached = []
     uncached_indices = []
     results = [None] * len(texts)
 
     for i, t in enumerate(texts):
-        if t in _embedding_cache:
+        if not t or not t.strip():
+            # 空字符串不调用 API，直接返回零向量（SiliconFlow 不接受空输入）
+            results[i] = [0.0] * 1024
+        elif t in _embedding_cache:
             results[i] = _embedding_cache[t]
         else:
             uncached.append(t)

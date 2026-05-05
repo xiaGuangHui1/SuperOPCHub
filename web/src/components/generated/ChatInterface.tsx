@@ -117,7 +117,7 @@ export function ChatInterface({
           {messages.length === 0 ?
             <div className="h-full flex items-center justify-center text-gray-400">
               <div className="text-center space-y-3">
-                <p className="text-[16px] sm:text-[18px]">告诉我您的项目想法，让我们一起探索...</p>
+                <p className="text-[16px] sm:text-[18px]">嗨，告诉我您遇到的困难或项目想法，让我们一起探索...</p>
                 <div className="flex flex-col sm:flex-row gap-2 justify-center">
                   <div
                     className="px-4 py-2.5 border-2 border-blue-200 rounded-xl text-blue-600 font-medium cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:shadow-md transition-all duration-200 text-center min-w-[140px] text-sm"
@@ -126,7 +126,7 @@ export function ChatInterface({
                     帮我找一个UI设计师
                   </div>
                   <div
-                    className="px-4 py-2.5 border-2 border-blue-200 rounded-xl text-blue-600 text-sm font-medium cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:shadow-md transition-all duration-200 text-center min-w-[140px]"
+                    className="px-4 py-2.5 border-2 border-blue-200 rounded-xl textblue-600 text-sm font-medium cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:shadow-md transition-all duration-200 text-center min-w-[140px]"
                     onClick={() => handleSuggestionClick("我想做一个哄我上班的APP")}
                   >
                     我想做一个哄我上班的APP
