@@ -197,6 +197,58 @@ def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
         )
 
 
+@app.get("/api/debug-match")
+def debug_match():
+    """调试端点：检查 OPC 画像数量和匹配状态（无需认证）"""
+    import traceback
+    result = {"status": "ok", "opc_count": 0, "errors": []}
+
+    try:
+        from db.supabase import fetch_opc_profiles
+        opc_profiles = fetch_opc_profiles()
+        result["opc_count"] = len(opc_profiles)
+        if opc_profiles:
+            result["sample"] = {
+                "name": opc_profiles[0].get("name"),
+                "role": opc_profiles[0].get("role"),
+                "skills": (opc_profiles[0].get("skills") or "")[:80],
+            }
+    except Exception as e:
+        result["status"] = "error"
+        result["errors"].append(f"fetch_opc_profiles: {e}\n{traceback.format_exc()}")
+
+    try:
+        from services.matching import match_opc_profiles
+        from models.schemas import DemandProfileOut
+        profile = DemandProfileOut(
+            session_id="debug",
+            project_type="AI客服",
+            description="想用AI接住所有客户咨询",
+            skills_required=["AI客服系统", "自然语言处理"],
+            is_complete=True,
+        )
+        matches = match_opc_profiles(profile, opc_profiles, top_k=3)
+        result["match_count"] = len(matches)
+        result["top_match"] = {
+            "name": matches[0].name,
+            "role": matches[0].role,
+            "score": matches[0].match_rate,
+        } if matches else None
+    except Exception as e:
+        result["errors"].append(f"match_opc_profiles: {e}\n{traceback.format_exc()}")
+
+    try:
+        from config import config
+        result["config"] = {
+            "MATCH_MIN_SCORE": config.MATCH_MIN_SCORE,
+            "MATCH_TOP_K": config.MATCH_TOP_K,
+        }
+    except Exception as e:
+        result["errors"].append(f"config: {e}")
+
+    return result
+
+
 @app.post("/api/match", response_model=MatchResponse)
 def match(request: ChatRequest, user_id: str = Depends(get_current_user)):
     """独立的匹配接口：基于已提取的需求进行匹配（需认证）"""
