@@ -90,7 +90,10 @@ def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
         logger.info(f"[/api/chat] session={session_id} round={user_round} msg={last_user_msg[:80]}")
 
         # ── Step 1: 提取需求画像 ──────────────────────
-        demand_profile = extraction.extract_demand_profile(messages, user_round)
+        try:
+            demand_profile = extraction.extract_demand_profile(messages, user_round)
+        except Exception as e:
+            raise RuntimeError(f"[Step1-LLM提取] {type(e).__name__}: {e}") from e
         demand_profile.session_id = session_id
 
         # 用代码兜底计算 is_complete，不依赖 LLM 是否正确设置
@@ -108,14 +111,20 @@ def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
         is_matching_complete = False
         if demand_profile.is_complete:
             try:
-                opc_profiles = fetch_opc_profiles()
+                try:
+                    opc_profiles = fetch_opc_profiles()
+                except Exception as e:
+                    raise RuntimeError(f"[Step2-获取OPC] {type(e).__name__}: {e}") from e
                 logger.info(f"[/api/chat] 获取到 {len(opc_profiles)} 个 OPC 画像")
-                matches = match_opc_profiles(
-                    demand_profile,
-                    opc_profiles,
-                    top_k=config.MATCH_TOP_K,
-                    min_score=config.MATCH_MIN_SCORE,
-                )
+                try:
+                    matches = match_opc_profiles(
+                        demand_profile,
+                        opc_profiles,
+                        top_k=config.MATCH_TOP_K,
+                        min_score=config.MATCH_MIN_SCORE,
+                    )
+                except Exception as e:
+                    raise RuntimeError(f"[Step2-关键词匹配] {type(e).__name__}: {e}") from e
                 is_matching_complete = True
                 logger.info(
                     f"[/api/chat] 匹配结果: {len(matches)} 个匹配, "
@@ -147,9 +156,12 @@ def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
                 logger.error(f"[/api/chat] 匹配失败: {match_err}\n{traceback.format_exc()}")
 
         # ── Step 3: 生成 AI 回复（传入匹配结果）──────
-        assistant_message = extraction.generate_assistant_message(
-            messages, demand_profile, user_round, matches if is_matching_complete else None
-        )
+        try:
+            assistant_message = extraction.generate_assistant_message(
+                messages, demand_profile, user_round, matches if is_matching_complete else None
+            )
+        except Exception as e:
+            raise RuntimeError(f"[Step3-生成回复] {type(e).__name__}: {e}") from e
         logger.info(
             f"[/api/chat] AI 回复 (前80字): {assistant_message[:80]}..."
             if len(assistant_message) > 80
@@ -183,13 +195,15 @@ def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
         )
 
     except Exception as e:
-        logger.error(f"[/api/chat] 处理失败: {e}\n{traceback.format_exc()}")
+        tb = traceback.format_exc()
+        logger.error(f"[/api/chat] 处理失败: {e}\n{tb}")
 
+        # 提取可读的错误步骤信息给前端
+        err_detail = str(e)
         return ChatResponse(
             session_id=session_id,
             assistant_message=(
-                "抱歉，处理您的请求时遇到了一些问题"
-                f"（{type(e).__name__}），请稍后重试或换个方式描述您的需求。"
+                f"抱歉，处理您的请求时遇到了一些问题（{err_detail}），请稍后重试或换个方式描述您的需求。"
             ),
             demand_profile=DemandProfileOut(session_id=session_id),
             matches=[],
