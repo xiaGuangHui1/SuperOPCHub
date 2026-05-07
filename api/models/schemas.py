@@ -69,3 +69,65 @@ class MatchResponse(BaseModel):
     session_id: str
     demand_profile: DemandProfileOut
     matches: List[OPCMatch]
+
+
+# ─── V2 响应模型（增强版匹配）───────────────────────
+
+class DemandDimension(BaseModel):
+    """单个推理维度（含置信度）"""
+    value: Any
+    confidence: float = 0.0
+    sources: List[str] = Field(default_factory=list)
+    verified: bool = False
+
+
+class EnhancedDemandProfileOut(BaseModel):
+    """增强版需求画像（V2 API 返回）"""
+    session_id: str
+    primary_need: DemandDimension = Field(default_factory=lambda: DemandDimension(value=""))
+    domain: DemandDimension = Field(default_factory=lambda: DemandDimension(value=""))
+    required_skills: DemandDimension = Field(default_factory=lambda: DemandDimension(value=[]))
+    complexity: DemandDimension = Field(default_factory=lambda: DemandDimension(value="medium"))
+    estimated_budget_range: DemandDimension = Field(
+        default_factory=lambda: DemandDimension(value={"min": None, "max": None})
+    )
+    timeline: DemandDimension = Field(default_factory=lambda: DemandDimension(value=""))
+    overall_confidence: float = 0.0
+    exit_reason: str = ""
+    low_confidence_dims: List[str] = Field(default_factory=list)
+    ux_message: str = ""
+
+
+class MatchDetailOut(BaseModel):
+    """匹配分项得分"""
+    semantic_similarity: float = 0.0
+    skill_match: float = 0.0
+    experience_match: float = 0.0
+    reputation_score: float = 0.0
+    response_score: float = 0.0
+    budget_match: float = 0.0
+    confidence_penalty: float = 0.0
+    final_score: float = 0.0
+
+
+class EnhancedOPCMatch(BaseModel):
+    """增强版匹配结果"""
+    opc_id: str
+    name: str
+    avatar_url: Optional[str] = None
+    role: str = ""
+    description: str = ""
+    skills: List[str] = Field(default_factory=list)
+    match_score: float = 0.0
+    match_reasons: List[str] = Field(default_factory=list)
+    match_detail: Optional[MatchDetailOut] = None
+    is_available: bool = True
+
+
+class ChatResponseV2(BaseModel):
+    """V2 对话响应：增强需求画像 + 多维匹配结果"""
+    session_id: str
+    assistant_message: str = ""
+    demand_profile: Optional[EnhancedDemandProfileOut] = None
+    matches: List[EnhancedOPCMatch] = Field(default_factory=list)
+    is_matching_complete: bool = False
