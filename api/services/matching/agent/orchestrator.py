@@ -85,7 +85,7 @@ class RequirementAnalysisAgent:
                 break
 
         # 最终轮: Self-Critique
-        critique_result = self_critique(user_input)
+        critique_result = self.critique(user_input)
         if critique_result:
             self.pool = apply_critique_adjustments(self.pool, critique_result)
 

@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { FaPaperPlane } from "react-icons/fa";
 import { motion } from "framer-motion";
-import { sendChatMessage, type DemandData, type MatchResult } from "@/lib/api";
+import { sendChatMessage, type DemandProfileV2, type MatchResultV2 } from "@/lib/api";
 
 interface Message {
   id: string;
@@ -13,8 +13,8 @@ interface Message {
 
 interface ChatInterfaceProps {
   onDemandSubmit?: (messages: Message[]) => void;
-  onDemandUpdate?: (demand: DemandData) => void;
-  onMatchResults?: (matches: MatchResult[]) => void;
+  onDemandUpdate?: (demand: DemandProfileV2) => void;
+  onMatchResults?: (matches: MatchResultV2[]) => void;
 }
 
 export function ChatInterface({
