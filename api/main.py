@@ -30,7 +30,7 @@ from models.schemas import (
     DemandDimension,
 )
 from services import extraction
-from services.matching import match_opc_profiles as keyword_match
+from services.matching import match_opc_profiles
 from services.matching import run_matching_pipeline
 from db.supabase import fetch_opc_profiles, save_demand_profile, save_conversation_message
 from db.auth import get_current_user, get_optional_user
@@ -123,7 +123,7 @@ def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
                     raise RuntimeError(f"[Step2-获取OPC] {type(e).__name__}: {e}") from e
                 logger.info(f"[/api/chat] 获取到 {len(opc_profiles)} 个 OPC 画像")
                 try:
-                    matches = keyword_match(
+                    matches = match_opc_profiles(
                         demand_profile,
                         opc_profiles,
                         top_k=config.MATCH_TOP_K,
@@ -280,7 +280,7 @@ def match(request: ChatRequest, user_id: str = Depends(get_current_user)):
     demand_profile.session_id = request.session_id
 
     opc_profiles = fetch_opc_profiles()
-    matches = keyword_match(
+    matches = match_opc_profiles(
         demand_profile,
         opc_profiles,
         top_k=config.MATCH_TOP_K,
