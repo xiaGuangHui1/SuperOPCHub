@@ -2,6 +2,7 @@
  * Super OPC Hub API 客户端
  *
  * 连接到后端 FastAPI 服务，提供对话和匹配接口。
+ * V2 版本：直接使用 chat-v2 端点的 Enhanced 数据结构。
  */
 
 import { supabase } from "./supabase";
@@ -13,38 +14,75 @@ export interface ChatMessage {
   content: string;
 }
 
-export interface DemandData {
-  session_id: string;
-  project_type: string;
-  budget_min: number | null;
-  budget_max: number | null;
-  timeline: string;
-  skills_required: string[];
-  description: string;
-  collaboration_mode: string;
-  industry: string;
-  service_expectations: string;
-  is_complete: boolean;
-  missing_fields: string[];
+// ─── V2 推理维度 ──────────────────────────────────────
+
+export interface InferenceDim {
+  value: string;
+  confidence: number;
+  sources: string[];
+  verified: boolean;
 }
 
-export interface MatchResult {
-  id: string;
+export interface SkillsDim {
+  value: string[];
+  confidence: number;
+  mandatory: string[];
+  optional: string[];
+}
+
+export interface BudgetDim {
+  value: { min: number | null; max: number | null };
+  confidence: number;
+}
+
+// ─── V2 需求画像 ─────────────────────────────────────
+
+export interface DemandProfileV2 {
+  session_id: string;
+  primary_need: InferenceDim;
+  domain: InferenceDim;
+  required_skills: SkillsDim;
+  complexity: InferenceDim;
+  estimated_budget_range: BudgetDim;
+  timeline: InferenceDim;
+  industry: InferenceDim;
+  description: InferenceDim;
+  overall_confidence: number;
+  exit_reason: string;
+  ux_message: string;
+}
+
+// ─── V2 匹配结果 ─────────────────────────────────────
+
+export interface MatchDetailV2 {
+  semantic_similarity: number;
+  skill_match: number;
+  experience_match: number;
+  reputation_score: number;
+  response_score: number;
+  budget_match: number;
+  confidence_penalty: number;
+  final_score: number;
+}
+
+export interface MatchResultV2 {
+  opc_id: string;
   name: string;
   avatar_url: string | null;
   role: string;
   description: string | null;
   skills: string[];
-  match_rate: number;
+  match_score: number;
   match_reasons: string[];
+  match_detail: MatchDetailV2;
   is_available: boolean;
 }
 
-export interface ChatResponse {
+export interface ChatResponseV2 {
   session_id: string;
   assistant_message: string;
-  demand_profile: DemandData | null;
-  matches: MatchResult[];
+  demand_profile: DemandProfileV2 | null;
+  matches: MatchResultV2[];
   is_matching_complete: boolean;
 }
 
@@ -69,7 +107,7 @@ export async function sendChatMessage(
   sessionId: string,
   messages: ChatMessage[],
   userId?: string,
-): Promise<ChatResponse> {
+): Promise<ChatResponseV2> {
   const headers = await getAuthHeaders();
 
   const response = await fetch(`${API_BASE}/api/chat-v2`, {
@@ -87,5 +125,5 @@ export async function sendChatMessage(
     throw new Error(`API error ${response.status}: ${errorText}`);
   }
 
-  return response.json() as Promise<ChatResponse>;
+  return response.json() as Promise<ChatResponseV2>;
 }

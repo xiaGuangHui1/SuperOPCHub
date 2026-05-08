@@ -11,6 +11,7 @@ export interface DemandProfileData {
   collaboration_mode: string;
   industry: string;
   service_expectations: string;
+  overall_confidence?: number;
 }
 
 interface DemandProfileProps {

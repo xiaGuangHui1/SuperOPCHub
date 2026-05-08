@@ -4,7 +4,7 @@ import { Header } from "@/components/generated/Header";
 import { ChatInterface } from "@/components/generated/ChatInterface";
 import { DemandProfile, type DemandProfileData } from "@/components/generated/DemandProfile";
 import { OPCMatchCard } from "@/components/generated/OPCMatchCard";
-import type { MatchResult } from "@/lib/api";
+import type { DemandProfileV2, MatchResultV2 } from "@/lib/api";
 
 interface Message {
   id: string;
@@ -23,19 +23,30 @@ export default function Home() {
     setShowDemandProfile(true);
   };
 
-  const handleDemandUpdate = (demand: DemandProfileData) => {
-    setDemandData(demand);
+  const handleDemandUpdate = (demand: DemandProfileV2) => {
+    setDemandData({
+      project_type: demand.primary_need?.value || "",
+      budget_min: demand.estimated_budget_range?.value?.min ?? null,
+      budget_max: demand.estimated_budget_range?.value?.max ?? null,
+      timeline: demand.timeline?.value || "",
+      skills_required: demand.required_skills?.value || [],
+      description: demand.description?.value || "",
+      collaboration_mode: "",
+      industry: demand.industry?.value || demand.domain?.value || "",
+      service_expectations: "",
+      overall_confidence: demand.overall_confidence,
+    });
     setShowDemandProfile(true);
   };
 
-  const handleMatchResults = (matches: MatchResult[]) => {
+  const handleMatchResults = (matches: MatchResultV2[]) => {
     setOpcMatches(
       matches.map((m) => ({
-        id: m.id,
+        id: m.opc_id,
         name: m.name,
         avatar: m.avatar_url || "",
         role: m.role,
-        matchRate: m.match_rate,
+        matchRate: m.match_score,
         description: m.description || "",
         skills: m.skills,
       })),
