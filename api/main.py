@@ -28,6 +28,7 @@ from models.schemas import (
     EnhancedOPCMatch,
     MatchDetailOut,
     DemandDimension,
+    BudgetDimension,
 )
 from services import extraction
 from services.matching import match_opc_profiles
@@ -369,7 +370,7 @@ def chat_v2(request: ChatRequest, user_id: str = Depends(get_current_user)):
                         sources=ep.complexity.sources,
                         verified=ep.complexity.verified,
                     ),
-                    estimated_budget_range=DemandDimension(
+                    estimated_budget_range=BudgetDimension(
                         value=ep.estimated_budget_range.value,
                         confidence=ep.estimated_budget_range.confidence,
                         sources=ep.estimated_budget_range.sources,

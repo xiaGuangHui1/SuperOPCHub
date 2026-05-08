@@ -1,7 +1,7 @@
 """Pydantic 数据模型 —— 请求/响应 schema"""
 
 from __future__ import annotations
-from typing import List, Optional
+from typing import Any, List, Optional
 from pydantic import BaseModel, Field
 from datetime import datetime
 
@@ -75,7 +75,18 @@ class MatchResponse(BaseModel):
 
 class DemandDimension(BaseModel):
     """单个推理维度（含置信度）"""
-    value: Any
+    value: Any = Field(default="")
+    confidence: float = 0.0
+    sources: List[str] = Field(default_factory=list)
+    verified: bool = False
+
+
+DemandDimension.model_rebuild()
+
+
+class BudgetDimension(BaseModel):
+    """预算推理维度（value 为 {min, max} 字典）"""
+    value: dict = Field(default_factory=lambda: {"min": None, "max": None})
     confidence: float = 0.0
     sources: List[str] = Field(default_factory=list)
     verified: bool = False
@@ -88,9 +99,7 @@ class EnhancedDemandProfileOut(BaseModel):
     domain: DemandDimension = Field(default_factory=lambda: DemandDimension(value=""))
     required_skills: DemandDimension = Field(default_factory=lambda: DemandDimension(value=[]))
     complexity: DemandDimension = Field(default_factory=lambda: DemandDimension(value="medium"))
-    estimated_budget_range: DemandDimension = Field(
-        default_factory=lambda: DemandDimension(value={"min": None, "max": None})
-    )
+    estimated_budget_range: BudgetDimension = Field(default_factory=BudgetDimension)
     timeline: DemandDimension = Field(default_factory=lambda: DemandDimension(value=""))
     overall_confidence: float = 0.0
     exit_reason: str = ""
