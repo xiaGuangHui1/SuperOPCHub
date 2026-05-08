@@ -6,7 +6,7 @@
 
 import { supabase } from "./supabase";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -72,7 +72,7 @@ export async function sendChatMessage(
 ): Promise<ChatResponse> {
   const headers = await getAuthHeaders();
 
-  const response = await fetch(`${API_BASE}/api/chat`, {
+  const response = await fetch(`${API_BASE}/api/chat-v2`, {
     method: "POST",
     headers,
     body: JSON.stringify({

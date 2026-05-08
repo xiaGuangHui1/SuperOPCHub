@@ -4,12 +4,16 @@
   "outputDirectory": "dist",
   "installCommand": "pnpm install",
   "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "https://super-opc-api.vercel.app/api/$1"
+    },
     { "src": "/assets/(.*)", "dest": "/assets/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
   ],
   "env": {
     "VITE_SUPABASE_URL": "https://gjqexwfnbfnnqipyfwqe.supabase.co",
     "VITE_SUPABASE_ANON_KEY": "sb_publishable_1Yy0Giea_B-1Ylx3smtMpg_ij0jDMMd",
-    "VITE_API_URL": "https://super-opc-api.vercel.app"
+    "VITE_API_URL": ""
   }
 }
