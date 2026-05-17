@@ -13,6 +13,23 @@ class ChatMessage(BaseModel):
     content: str = Field(..., description="消息内容")
 
 
+class ExtractionWithReply(BaseModel):
+    """合并版结构化输出：一次 LLM 调用同时提取需求画像 + 生成 AI 回复"""
+    project_type: str = ""
+    description: str = ""
+    industry: str = ""
+    skills_required: List[str] = Field(default_factory=list)
+    timeline: str = ""
+    project_scope: str = ""
+    collaboration_mode: str = ""
+    service_expectations: str = ""
+    target_users: str = ""
+    constraints: str = ""
+    budget_min: Optional[float] = None
+    budget_max: Optional[float] = None
+    assistant_message: str = Field(..., description="给用户的 AI 回复文本")
+
+
 class ChatRequest(BaseModel):
     session_id: str = Field(..., description="会话 ID")
     messages: List[ChatMessage] = Field(..., description="对话历史（包括最新消息）")

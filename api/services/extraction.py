@@ -1,9 +1,49 @@
 """需求提取服务 —— 通过 Instructor 从对话中提取结构化需求画像"""
 
-from typing import List, Optional
-from models.schemas import DemandProfileOut, ChatMessage, OPCMatch
+from typing import List, Optional, Tuple
+from models.schemas import DemandProfileOut, ChatMessage, OPCMatch, ExtractionWithReply
 from services.llm import chat_completion, structured_completion
 from services import prompting
+
+
+def extract_and_reply(
+    messages: List[ChatMessage],
+    user_round: int = 1,
+) -> Tuple[DemandProfileOut, str]:
+    """
+    一次 LLM 调用同时完成：需求提取 + AI 回复生成。
+
+    返回 (DemandProfileOut, assistant_message)
+    """
+    system_prompt = prompting.COMBINED_SYSTEM
+    user_prompt = prompting.build_combined_prompt(messages, user_round)
+
+    result = structured_completion(
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ],
+        response_model=ExtractionWithReply,
+        temperature=0.3,
+        max_retries=1,
+    )
+
+    profile = DemandProfileOut(
+        session_id="",
+        project_type=result.project_type,
+        description=result.description,
+        industry=result.industry,
+        skills_required=result.skills_required,
+        timeline=result.timeline,
+        project_scope=result.project_scope,
+        collaboration_mode=result.collaboration_mode,
+        service_expectations=result.service_expectations,
+        target_users=result.target_users,
+        constraints=result.constraints,
+        budget_min=result.budget_min,
+        budget_max=result.budget_max,
+    )
+    return profile, result.assistant_message
 
 
 def extract_demand_profile(

@@ -202,3 +202,38 @@ OPC 角色：{opc_role}
 OPC 描述：{opc_desc}
 
 请评估该 OPC 角色与项目需求的匹配度分数（0-100的整数）。"""
+
+
+# ═══════════════════════════════════════════════════════
+# 合并提取+回复 Prompt（一次调用同时完成需求识别+推荐回复）
+# ═══════════════════════════════════════════════════════
+
+COMBINED_SYSTEM = """你是 Super OPC Hub 的对接顾问。分析用户需求并直接回复。
+
+【你要同时做两件事】
+1. 提取需求画像（结构化字段）
+2. 生成给用户的简短推荐回复（assistant_message 字段）
+
+【提取规则】
+- project_type: 从以下选一个最匹配的：AI客服、跨境电商、数据看板、品牌设计、财务系统、小程序开发、短视频、网站建设
+- description: 一句话概括
+- industry: 行业（电商/餐饮/教育/SaaS/零售等）
+- skills_required: 1-3个技能
+- timeline: 没提填"一个月左右"
+- 其他字段填空值
+
+【回复规则】
+- 大白话，像聊天，1-3句话
+- 先概括需求，然后说"正在帮你匹配合适的OPC——"
+- 绝对不要提问，不要追问任何细节"""
+
+
+def build_combined_prompt(messages, user_round: int = 1) -> str:
+    """构建合并 prompt。超过6条消息时只取最近3轮"""
+    # 截断：只保留最近6条消息（3轮对话）
+    recent = messages[-6:] if len(messages) > 6 else messages
+    conversation = "\n".join(
+        f"{'用户' if m.role == 'user' else '助理'}: {m.content}" for m in recent
+    )
+    return f"""对话记录：
+{conversation}"""
