@@ -24,15 +24,10 @@ from models.schemas import (
     MatchResponse,
     OPCMatch,
     DemandProfileOut,
-    EnhancedDemandProfileOut,
     EnhancedOPCMatch,
-    MatchDetailOut,
-    DemandDimension,
-    BudgetDimension,
 )
 from services import extraction
 from services.matching import match_opc_profiles
-from services.matching import run_matching_pipeline
 from db.supabase import fetch_opc_profiles, save_demand_profile, save_conversation_message
 from db.auth import get_current_user, get_optional_user
 from config import config
@@ -298,164 +293,80 @@ def match(request: ChatRequest, user_id: str = Depends(get_current_user)):
 @app.post("/api/chat-v2", response_model=ChatResponseV2)
 def chat_v2(request: ChatRequest, user_id: str = Depends(get_current_user)):
     """
-    V2 增强对话接口 —— 使用 Agent 多轮推理 + 多维匹配。
+    V2 对话接口 —— 使用稳定版 LLM 提取 + 关键词匹配。
 
-    流程：
-    1. 复用现有 LLM 提取做初始解析
-    2. Agent 多轮循环补全需求（RAG + KG + Stats + LLM）
-    3. 候选召回（置信度门控硬约束）
-    4. 语义精排（6维加权评分 + 置信度感知）
-    5. 生成 AI 回复
+    返回格式兼容 ChatResponseV2，内部复用 /api/chat 逻辑。
     """
     session_id = request.session_id
     messages = request.messages
 
     try:
         user_round = sum(1 for m in messages if m.role == "user")
-        last_user_msg = messages[-1].content if messages and messages[-1].role == "user" else ""
+        last_user_msg = messages[-1].content if messages and messages[-1].role == "user" else "(空)"
         logger.info(f"[/api/chat-v2] session={session_id} round={user_round} msg={last_user_msg[:80]}")
 
-        # ── Step 1: 已有 LLM 提取 ──────────────────────
+        # ── Step 1: 提取需求画像 ──────────────────────
         demand_profile = extraction.extract_demand_profile(messages, user_round)
         demand_profile.session_id = session_id
         demand_profile.is_complete = bool(demand_profile.project_type)
 
-        initial_extraction = {
-            "project_type": demand_profile.project_type,
-            "description": demand_profile.description,
-            "industry": demand_profile.industry,
-            "skills_required": demand_profile.skills_required,
-            "timeline": demand_profile.timeline,
-            "budget_min": demand_profile.budget_min,
-            "budget_max": demand_profile.budget_max,
-            "project_scope": demand_profile.project_scope,
-        }
-
-        # ── Step 2: V2 匹配流水线 ──────────────────────
+        # ── Step 2: 关键词匹配 ────────────────────────
+        opc_matches: list[OPCMatch] = []
+        is_matching_complete = False
         if demand_profile.is_complete:
-            pipeline_result = run_matching_pipeline(
-                user_input=last_user_msg,
-                session_id=session_id,
-                user_id=user_id,
-                initial_extraction=initial_extraction,
-                top_k=config.MATCH_TOP_K,
-            )
-
-            # 构建增强需求画像输出
-            ep = pipeline_result.get("demand_profile")
-            if ep:
-                enhanced_profile = EnhancedDemandProfileOut(
-                    session_id=session_id,
-                    primary_need=DemandDimension(
-                        value=ep.primary_need.value,
-                        confidence=ep.primary_need.confidence,
-                        sources=ep.primary_need.sources,
-                        verified=ep.primary_need.verified,
-                    ),
-                    domain=DemandDimension(
-                        value=ep.domain.value,
-                        confidence=ep.domain.confidence,
-                        sources=ep.domain.sources,
-                        verified=ep.domain.verified,
-                    ),
-                    required_skills=DemandDimension(
-                        value=ep.required_skills.value,
-                        confidence=ep.required_skills.confidence,
-                        sources=ep.required_skills.sources,
-                        verified=ep.required_skills.verified,
-                    ),
-                    complexity=DemandDimension(
-                        value=ep.complexity.value,
-                        confidence=ep.complexity.confidence,
-                        sources=ep.complexity.sources,
-                        verified=ep.complexity.verified,
-                    ),
-                    estimated_budget_range=BudgetDimension(
-                        value=ep.estimated_budget_range.value,
-                        confidence=ep.estimated_budget_range.confidence,
-                        sources=ep.estimated_budget_range.sources,
-                        verified=ep.estimated_budget_range.verified,
-                    ),
-                    timeline=DemandDimension(
-                        value=ep.timeline.value,
-                        confidence=ep.timeline.confidence,
-                        sources=ep.timeline.sources,
-                        verified=ep.timeline.verified,
-                    ),
-                    overall_confidence=ep.overall_confidence,
-                    exit_reason=ep.exit_reason,
-                    low_confidence_dims=ep.dimensions_with_low_confidence,
-                    ux_message=pipeline_result.get("message", ""),
+            try:
+                opc_profiles = fetch_opc_profiles()
+                logger.info(f"[/api/chat-v2] 获取到 {len(opc_profiles)} 个 OPC")
+                opc_matches = match_opc_profiles(
+                    demand_profile, opc_profiles,
+                    top_k=config.MATCH_TOP_K,
+                    min_score=config.MATCH_MIN_SCORE,
                 )
-            else:
-                enhanced_profile = None
-
-            # 构建匹配结果
-            v2_matches = []
-            for m in pipeline_result.get("matches", []):
-                detail = m.get("detail", {})
-                v2_matches.append(EnhancedOPCMatch(
-                    opc_id=m.get("opc_id", ""),
-                    name=m.get("name", ""),
-                    avatar_url=m.get("avatar_url"),
-                    role=m.get("role", ""),
-                    description=m.get("description", ""),
-                    skills=m.get("skills", []),
-                    match_score=m.get("match_score", 0.0),
-                    match_reasons=m.get("match_reasons", []),
-                    match_detail=MatchDetailOut(
-                        semantic_similarity=detail.get("semantic_similarity", 0.0),
-                        skill_match=detail.get("skill_match", 0.0),
-                        experience_match=detail.get("experience_match", 0.0),
-                        reputation_score=detail.get("reputation_score", 0.0),
-                        response_score=detail.get("response_score", 0.0),
-                        budget_match=detail.get("budget_match", 0.0),
-                        confidence_penalty=detail.get("confidence_penalty", 0.0),
-                        final_score=detail.get("final_score", 0.0),
-                    ),
-                    is_available=m.get("is_available", True),
-                ))
-            is_matching_complete = len(v2_matches) > 0
-        else:
-            enhanced_profile = None
-            v2_matches = []
-            is_matching_complete = False
+                is_matching_complete = len(opc_matches) > 0
+            except Exception as e:
+                logger.error(f"[/api/chat-v2] 匹配失败: {e}")
 
         # ── Step 3: 生成 AI 回复 ──────────────────────
         assistant_message = extraction.generate_assistant_message(
             messages, demand_profile, user_round,
-            matches=None,  # 用旧格式作为 fallback 生成回复
+            matches=opc_matches if is_matching_complete else None,
         )
 
-        # ── Step 4: 保存对话 ─────────────────────────
+        # ── Step 4: 保存对话记录 ──────────────────────
         try:
             if messages and messages[-1].role == "user":
                 save_conversation_message({
-                    "user_id": user_id,
-                    "session_id": session_id,
-                    "role": "user",
-                    "content": messages[-1].content,
+                    "user_id": user_id, "session_id": session_id,
+                    "role": "user", "content": messages[-1].content,
                 })
             save_conversation_message({
-                "user_id": user_id,
-                "session_id": session_id,
-                "role": "assistant",
-                "content": assistant_message,
+                "user_id": user_id, "session_id": session_id,
+                "role": "assistant", "content": assistant_message,
             })
         except Exception:
             pass
 
+        # 转换为 V2 格式
+        v2_matches = [
+            EnhancedOPCMatch(
+                opc_id=m.id, name=m.name, avatar_url=m.avatar_url,
+                role=m.role, description=m.description, skills=m.skills,
+                match_score=m.match_rate, match_reasons=m.match_reasons,
+                is_available=m.is_available,
+            )
+            for m in opc_matches
+        ]
+
         return ChatResponseV2(
             session_id=session_id,
             assistant_message=assistant_message,
-            demand_profile=enhanced_profile,
+            demand_profile=None,
             matches=v2_matches,
             is_matching_complete=is_matching_complete,
         )
 
     except Exception as e:
-        tb = traceback.format_exc()
-        logger.error(f"[/api/chat-v2] 处理失败: {e}\n{tb}")
+        logger.error(f"[/api/chat-v2] 处理失败: {e}\n{traceback.format_exc()}")
         return ChatResponseV2(
             session_id=session_id,
             assistant_message=f"抱歉，处理请求时遇到问题，请稍后重试。",
