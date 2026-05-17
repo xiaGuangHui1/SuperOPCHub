@@ -293,9 +293,13 @@ def match(request: ChatRequest, user_id: str = Depends(get_current_user)):
 @app.post("/api/chat-v2", response_model=ChatResponseV2)
 def chat_v2(request: ChatRequest, user_id: str = Depends(get_current_user)):
     """
-    V2 对话接口 —— 使用稳定版 LLM 提取 + 关键词匹配。
+    V2 对话接口 —— 单次 LLM 调用（提取需求+生成回复合并）。
 
-    返回格式兼容 ChatResponseV2，内部复用 /api/chat 逻辑。
+    流程：
+    1. 一次 LLM 调用同时提取需求画像 + 生成 AI 回复
+    2. 需求完整时执行关键词匹配
+    3. 匹配结果模板拼接到回复末尾
+    4. 保存对话记录
     """
     session_id = request.session_id
     messages = request.messages
@@ -305,8 +309,8 @@ def chat_v2(request: ChatRequest, user_id: str = Depends(get_current_user)):
         last_user_msg = messages[-1].content if messages and messages[-1].role == "user" else "(空)"
         logger.info(f"[/api/chat-v2] session={session_id} round={user_round} msg={last_user_msg[:80]}")
 
-        # ── Step 1: 提取需求画像 ──────────────────────
-        demand_profile = extraction.extract_demand_profile(messages, user_round)
+        # ── Step 1: 一次调用提取需求 + 生成回复 ────────
+        demand_profile, assistant_message = extraction.extract_and_reply(messages, user_round)
         demand_profile.session_id = session_id
         demand_profile.is_complete = bool(demand_profile.project_type)
 
@@ -326,13 +330,15 @@ def chat_v2(request: ChatRequest, user_id: str = Depends(get_current_user)):
             except Exception as e:
                 logger.error(f"[/api/chat-v2] 匹配失败: {e}")
 
-        # ── Step 3: 生成 AI 回复 ──────────────────────
-        assistant_message = extraction.generate_assistant_message(
-            messages, demand_profile, user_round,
-            matches=opc_matches if is_matching_complete else None,
-        )
+        # ── Step 3: 模板拼装匹配结果 ─────────────────
+        if is_matching_complete and opc_matches:
+            match_lines = []
+            for m in opc_matches[:5]:
+                match_lines.append(f"- {m.name}（{m.role}）匹配度 {m.match_rate}%")
+            match_text = "\n\n为你匹配到以下 OPC：\n" + "\n".join(match_lines)
+            assistant_message += match_text
 
-        # ── Step 4: 保存对话记录 ──────────────────────
+        # ── Step 4: 保存对话记录 ─────────────────────
         try:
             if messages and messages[-1].role == "user":
                 save_conversation_message({
