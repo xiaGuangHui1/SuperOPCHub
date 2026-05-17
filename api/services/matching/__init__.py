@@ -15,6 +15,7 @@
     )
 """
 
+from __future__ import annotations
 from typing import List, Dict, Any, Optional
 import logging
 import re
@@ -142,14 +143,6 @@ def _parse_skills(skills_str: str) -> List[str]:
 # V2 增强匹配流水线
 # ═══════════════════════════════════════════════════════
 
-from services.matching.agent.orchestrator import RequirementAnalysisAgent
-from services.matching.schemas import EnhancedDemandProfile, EnhancedOPCProfile, EnhancedMatchResult
-from services.matching.recall import hard_filter
-from services.matching.ranking import confidence_aware_ranking
-from services.matching.profiles.opc_profile import get_all_opc_profiles
-from services.matching.profiles.demand_profile import save_demand_profile_enhanced
-from services.matching.feedback import record_feedback
-
 
 def run_matching_pipeline(
     user_input: str,
@@ -166,6 +159,13 @@ def run_matching_pipeline(
     Level 2: 候选召回（硬约束过滤）
     Level 3: 语义精排（多因子评分）
     """
+    # V2 模块延迟导入 —— 避免启动时因依赖问题导致整个应用崩溃
+    from services.matching.agent.orchestrator import RequirementAnalysisAgent
+    from services.matching.schemas import EnhancedMatchResult
+    from services.matching.recall import hard_filter
+    from services.matching.ranking import confidence_aware_ranking
+    from services.matching.profiles.opc_profile import get_all_opc_profiles
+    from services.matching.profiles.demand_profile import save_demand_profile_enhanced
     result = {
         "session_id": session_id,
         "demand_profile": None,
