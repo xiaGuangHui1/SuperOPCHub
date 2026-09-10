@@ -1,4 +1,5 @@
-英文名字：superOPCHub   中文名字：超级个体枢纽
+英文名：《superOPCHub》
+中文名：《超级个体枢纽》
 
 Demo访问链接：www.superopchub.com
 
