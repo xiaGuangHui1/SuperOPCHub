@@ -6,7 +6,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "https://super-opc-api.vercel.app/api/$1"
+      "dest": "https://superopchub-production.up.railway.app/api/$1"
     },
     { "src": "/assets/(.*)", "dest": "/assets/$1" },
     { "src": "/(.*)", "dest": "/index.html" }

@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { FaPaperPlane } from "react-icons/fa";
 import { motion } from "framer-motion";
-import { sendChatMessage, type DemandProfileV2, type MatchResultV2 } from "@/lib/api";
+import { sendChatMessage, type DemandData, type MatchResult } from "@/lib/api";
 
 interface Message {
   id: string;
@@ -13,8 +13,8 @@ interface Message {
 
 interface ChatInterfaceProps {
   onDemandSubmit?: (messages: Message[]) => void;
-  onDemandUpdate?: (demand: DemandProfileV2) => void;
-  onMatchResults?: (matches: MatchResultV2[]) => void;
+  onDemandUpdate?: (demand: DemandData) => void;
+  onMatchResults?: (matches: MatchResult[]) => void;
 }
 
 export function ChatInterface({
@@ -117,7 +117,7 @@ export function ChatInterface({
           {messages.length === 0 ?
             <div className="h-full flex items-center justify-center text-gray-400">
               <div className="text-center space-y-3">
-                <p className="text-[16px] sm:text-[18px]">嗨，说说你想做什么，我帮你对接合适的 OPC——</p>
+                <p className="text-[16px] sm:text-[18px]">说说你想做什么，我帮你找到能胜任的人——</p>
                 <div className="flex flex-wrap gap-2 justify-center max-w-2xl">
                   <div
                     className="px-4 py-2.5 border-2 border-blue-200 rounded-xl text-blue-600 font-medium cursor-pointer hover:bg-blue-50 hover:border-blue-300 hover:shadow-md transition-all duration-200 text-center min-w-[140px] text-sm"
@@ -211,7 +211,7 @@ export function ChatInterface({
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={hasMatched ? "想调整需求？告诉我……" : "说说你想找什么样的 OPC……"}
+              placeholder={hasMatched ? "想调整需求？告诉我……" : "描述你的需求，比如「帮我做一个小程序」……"}
               className="flex-1 px-3 sm:px-4 py-2 sm:py-3 text-sm sm:text-base border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
             <Button
