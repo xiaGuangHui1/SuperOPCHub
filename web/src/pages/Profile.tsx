@@ -11,7 +11,7 @@ import { FaUser, FaHistory, FaEdit, FaSignOutAlt, FaStar } from "react-icons/fa"
 import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabase";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 
 interface ConversationHistory {
   id: string;
@@ -23,7 +23,6 @@ interface ConversationHistory {
 export default function Profile() {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
   const [activeTab, setActiveTab] = useState("profile");
   const [conversations, setConversations] = useState<ConversationHistory[]>([]);
   const [isEditing, setIsEditing] = useState(false);
@@ -37,7 +36,7 @@ export default function Profile() {
 
   useEffect(() => {
     if (!loading && !user) {
-      navigate("/login", { state: { from: location.pathname } });
+      navigate("/");
     }
   }, [user, loading, navigate, location]);
 
