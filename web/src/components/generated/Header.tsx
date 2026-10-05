@@ -10,7 +10,10 @@ export function Header() {
           </div>
           <h1 className="text-lg sm:text-2xl font-bold text-gray-900">Super OPC Hub</h1>
         </Link>
-        <span className="text-xs sm:text-sm text-gray-400">搜索找到能胜任的人</span>
+        <div className="flex items-center gap-3">
+          <span className="text-xs sm:text-sm text-gray-400 hidden sm:inline">搜索找到能胜任的人</span>
+          <Link to="/record" className="text-xs sm:text-sm text-blue-600 font-medium hover:underline">网站备案</Link>
+        </div>
       </div>
     </header>
   );

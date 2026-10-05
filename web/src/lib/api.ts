@@ -89,3 +89,27 @@ export async function sendChatMessage(
 
   return response.json() as Promise<ChatResponse>;
 }
+
+export interface RecordSubmit {
+  name: string;
+  url: string;
+  role: string;
+  description: string;
+  skills: string;
+  github: string;
+}
+
+export async function submitRecord(record: RecordSubmit) {
+  const response = await fetch(`${API_BASE}/api/records`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(record),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`API error ${response.status}: ${errorText}`);
+  }
+
+  return response.json();
+}

@@ -48,6 +48,7 @@ export default function Home() {
         matchRate: m.match_rate,
         description: m.description || "",
         skills: m.skills,
+        matchReasons: m.match_reasons || [],
       })),
     );
     setShowOPCMatches(true);
@@ -94,4 +95,5 @@ interface OpcProfile {
   matchRate: number;
   description: string;
   skills: string[];
+  matchReasons: string[];
 }
