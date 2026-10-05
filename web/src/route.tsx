@@ -5,6 +5,7 @@ import Square from "./pages/Square";
 import Discovery from "./pages/Discovery";
 import Profile from "./pages/Profile";
 import OPCDetail from "./pages/OPCDetail";
+import Record from "./pages/Record";
 
 export const routes: RouteObject[] = [
   {
@@ -15,6 +16,7 @@ export const routes: RouteObject[] = [
       { path: "/discovery", element: <Discovery /> },
       { path: "/profile", element: <Profile /> },
       { path: "/opc/:id", element: <OPCDetail /> },
+      { path: "/record", element: <Record /> },
       { path: "*", element: <Home /> },
     ],
   },

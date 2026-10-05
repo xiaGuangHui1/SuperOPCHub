@@ -16,6 +16,7 @@ import traceback
 import logging
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
 from models.schemas import (
     ChatRequest,
@@ -29,6 +30,7 @@ from models.schemas import (
 from services import extraction
 from services.matching import match_opc_profiles
 from db.supabase import fetch_opc_profiles, save_demand_profile, save_conversation_message
+from db.records import fetch_records, save_record
 from db.auth import get_current_user, get_optional_user
 from config import config
 
@@ -67,8 +69,30 @@ def health():
     return {"status": "ok", "model": config.LLM_MODEL}
 
 
+class RecordIn(BaseModel):
+    """网站主备案提交的字段"""
+    name: str = ""
+    url: str
+    role: str = "独立开发者"
+    description: str = ""
+    skills: str = ""  # 逗号分隔
+    github: str = ""
+
+
+@app.post("/api/records")
+def submit_record(record: RecordIn):
+    """网站主主动备案：提交自己的网站信息，进入备案池"""
+    return save_record(record.model_dump())
+
+
+@app.get("/api/records")
+def list_records():
+    """列出备案池里所有记录"""
+    return fetch_records()
+
+
 @app.post("/api/chat", response_model=ChatResponse)
-def chat(request: ChatRequest, user_id: str = Depends(get_current_user)):
+def chat(request: ChatRequest, user_id: str | None = Depends(get_optional_user)):
     """
     核心对话接口。（需认证）
 
@@ -270,7 +294,7 @@ def debug_match():
 
 
 @app.post("/api/match", response_model=MatchResponse)
-def match(request: ChatRequest, user_id: str = Depends(get_current_user)):
+def match(request: ChatRequest, user_id: str | None = Depends(get_optional_user)):
     """独立的匹配接口：基于已提取的需求进行匹配（需认证）"""
     demand_profile = extraction.extract_demand_profile(request.messages)
     demand_profile.session_id = request.session_id
@@ -291,7 +315,7 @@ def match(request: ChatRequest, user_id: str = Depends(get_current_user)):
 
 
 @app.post("/api/chat-v2", response_model=ChatResponseV2)
-def chat_v2(request: ChatRequest, user_id: str = Depends(get_current_user)):
+def chat_v2(request: ChatRequest, user_id: str | None = Depends(get_optional_user)):
     """
     V2 对话接口 —— 单次 LLM 调用（提取需求+生成回复合并）。
 
@@ -319,8 +343,14 @@ def chat_v2(request: ChatRequest, user_id: str = Depends(get_current_user)):
         is_matching_complete = False
         if demand_profile.is_complete:
             try:
-                opc_profiles = fetch_opc_profiles()
-                logger.info(f"[/api/chat-v2] 获取到 {len(opc_profiles)} 个 OPC")
+                # 优先检索备案池（网站主主动备案），空则回退 Supabase
+                opc_profiles = fetch_records()
+                if not opc_profiles:
+                    try:
+                        opc_profiles = fetch_opc_profiles()
+                    except Exception:
+                        opc_profiles = []
+                logger.info(f"[/api/chat-v2] 获取到 {len(opc_profiles)} 个备案/OPC")
                 opc_matches = match_opc_profiles(
                     demand_profile, opc_profiles,
                     top_k=config.MATCH_TOP_K,

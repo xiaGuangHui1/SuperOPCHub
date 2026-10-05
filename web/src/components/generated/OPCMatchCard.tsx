@@ -10,6 +10,7 @@ interface OPCProfile {
   matchRate: number;
   description: string;
   skills: string[];
+  matchReasons: string[];
 }
 
 interface OPCMatchCardProps {
@@ -106,6 +107,17 @@ export function OPCMatchCard({ profiles, isVisible }: OPCMatchCardProps) {
                 </span>
               ))}
             </div>
+
+            {profile.matchReasons?.length > 0 && (
+              <div className="mb-3 sm:mb-4 bg-gray-50 rounded-lg p-2 sm:p-3">
+                <p className="text-xs font-semibold text-gray-500 mb-1">为什么推荐他</p>
+                <ul className="space-y-1">
+                  {profile.matchReasons.map((reason, i) => (
+                    <li key={i} className="text-xs text-gray-600 leading-relaxed">· {reason}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
 
             <Button className="w-full bg-blue-500 hover:bg-blue-600 text-white gap-2 text-sm py-2 sm:py-3">
               查看详情
